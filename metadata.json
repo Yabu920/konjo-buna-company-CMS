@@ -1,0 +1,6 @@
+{
+  "name": "Konjo Coffee Export",
+  "description": "Premium Ethiopian Coffee processing and export portal for Konjo Coffee / Konjo Buna, sourcing the finest highland single-origin beans.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
