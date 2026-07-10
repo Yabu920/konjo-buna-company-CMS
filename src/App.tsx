@@ -11,6 +11,9 @@ import Footer from './components/Footer.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import image1 from '../images/image-1.jpg';
 import packing from '../images/packing.png';
+import aboutBannerVideo from '../images/video.MOV';
+import image3 from '../images/IMG_8580.png';
+
 export default function App() {
   // Localization State
   const [lang, setLang] = useState<'en' | 'am'>(() => {
@@ -269,13 +272,13 @@ export default function App() {
                         setInquiryProductSelect('');
                         navigateTo('contact');
                       }}
-                      className="px-8 py-4.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] transition-colors rounded-none font-bold text-xs uppercase tracking-widest shadow-md"
+                      className="px-8 py-4.5 border rounded-2xl bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] transition-colors  font-bold text-xs uppercase tracking-widest shadow-md"
                     >
                       {lang === 'en' ? 'Export Inquiry' : 'የኤክስፖርት ጥያቄ'}
                     </button>
                     <button 
                       onClick={() => navigateTo('products')}
-                      className="px-8 py-4.5 border border-[#2D2A26] text-[#2D2A26] hover:bg-[#7E4015]/10 hover:border-[#7E4015] hover:text-[#7E4015] transition-all rounded-none font-bold text-xs uppercase tracking-widest"
+                      className="px-8 py-4.5 border border-[#2D2A26] text-[#2D2A26] hover:bg-[#7E4015]/10 hover:border-[#7E4015] hover:text-[#7E4015] transition-all rounded-2xl font-bold text-xs uppercase tracking-widest"
                     >
                       {lang === 'en' ? 'View Products' : 'ቡናዎችን ይመልከቱ'}
                     </button>
@@ -302,8 +305,8 @@ export default function App() {
                 <div className="lg:col-span-7 grid grid-cols-6 grid-rows-6 gap-4 h-[550px] sm:h-[650px]">
                   
                   {/* Main Visual Block (Natural Processed Specialty) */}
-                  <div className="col-span-4 row-span-4 bg-[#2D2A26] relative overflow-hidden group">
-                    <div className="absolute inset-0  bg-cover bg-center opacity-120 group-hover:scale-102 transition-transform duration-700" style={{ backgroundImage: `url(${packing})` }}></div>
+                  <div className="col-span-4 row-span-4 border rounded-2xl bg-[#2D2A26] relative overflow-hidden group">
+                    <div className="absolute inset-0 border rounded-2xl bg-cover bg-center opacity-120 group-hover:scale-102 transition-transform duration-700" style={{ backgroundImage: `url(${packing})` }}></div>
                     {/* bg-[url('https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=1024')] */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#2D2A26] via-[#2D2A26]/40 to-transparent"></div>
                     <div className="absolute bottom-6 left-6 z-10 space-y-1">
@@ -317,7 +320,7 @@ export default function App() {
                   </div>
 
                   {/* Small Detail 1 (Yirgacheffe accent tile) */}
-                  <div className="col-span-2 row-span-2 bg-[#7E4015] p-5 flex flex-col justify-between text-[#F8F1E7]">
+                  <div className="col-span-2 row-span-2 border rounded-2xl bg-[#7E4015] p-5 flex flex-col justify-between text-[#F8F1E7]">
                     <div className="w-8 h-8 border border-white/20 rounded-full flex items-center justify-center">
                       <Coffee className="h-3.5 w-3.5 text-white" />
                     </div>
@@ -328,7 +331,7 @@ export default function App() {
                   </div>
 
                   {/* Small Detail 2 (SCA Cup Score stat tile) */}
-                  <div className="col-span-2 row-span-2 bg-white/40 border border-[#2D2A26]/10 p-5 flex flex-col justify-center">
+                  <div className="col-span-2 row-span-2 border rounded-2xl bg-white/40 border border-[#2D2A26]/10 p-5 flex flex-col justify-center">
                     <div className="text-3xl sm:text-4xl font-serif italic font-bold text-[#7E4015] leading-none mb-1">92+</div>
                     <p className="text-[10px] leading-tight opacity-75 uppercase tracking-tight font-bold text-[#2D2A26]">
                       Average SCA Cup Score for our micro-lots
@@ -336,7 +339,7 @@ export default function App() {
                   </div>
 
                   {/* Stat Bar (District origin tile) */}
-                  <div className="col-span-3 row-span-2 bg-white border border-[#2D2A26]/10 p-5 flex items-center gap-4">
+                  <div className="col-span-3 row-span-2 border rounded-2xl bg-white border border-[#2D2A26]/10 p-5 flex items-center gap-4">
                     <div className="w-10 h-10 bg-[#F8F1E7] rounded-full flex-shrink-0 flex items-center justify-center border border-[#7E4015]/20">
                       <MapPin className="h-4.5 w-4.5 text-[#7E4015]" />
                     </div>
@@ -347,7 +350,7 @@ export default function App() {
                   </div>
 
                   {/* Logo / Quality Seal */}
-                  <div className="col-span-3 row-span-2 bg-[#2D2A26] p-4 flex items-center justify-center text-center">
+                  <div className="col-span-3 row-span-2 border rounded-3xl bg-[#2D2A26] p-4 flex items-center justify-center text-center">
                     <div>
                       <div className="text-[#F8F1E7] text-[9px] tracking-[0.3em] uppercase mb-0.5 opacity-40">Export Quality</div>
                       <div className="text-[#F8F1E7] font-serif text-xl font-bold tracking-tight">KONJO BUNA</div>
@@ -373,13 +376,13 @@ export default function App() {
                   return (
                     <div 
                       key={idx} 
-                      className="group relative h-80 rounded-none overflow-hidden border border-[#2D2A26]/10 bg-[#2D2A26] flex flex-col justify-end p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-lg"
+                      className="group relative h-80 rounded-3xl overflow-hidden border border-[#2D2A26]/10 bg-[#2D2A26] flex flex-col justify-end p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-lg"
                     >
-                      <div className="absolute inset-0 bg-cover bg-center opacity-30 transition-transform duration-700 group-hover:scale-102" style={{ backgroundImage: `url('${hl.img}')` }}></div>
+                      <div className="absolute inset-0 bg-cover  bg-center opacity-30 transition-transform duration-700 group-hover:scale-102" style={{ backgroundImage: `url('${hl.img}')` }}></div>
                       <div className="absolute inset-0 bg-gradient-to-t from-[#2D2A26] via-[#2D2A26]/80 to-transparent"></div>
                       
                       <div className="relative z-10 space-y-2">
-                        <div className="bg-[#7E4015] w-10 h-10 rounded-none flex items-center justify-center border border-[#F8F1E7]/10 mb-2 shadow">
+                        <div className="bg-[#7E4015] w-10 h-10 rounded-full flex items-center justify-center border border-[#F8F1E7]/10 mb-2 shadow">
                           <IconComp className="h-5 w-5 text-[#F8F1E7]" />
                         </div>
                         <h3 className="font-serif text-xl font-bold text-[#F8F1E7]">{hl.title}</h3>
@@ -404,7 +407,7 @@ export default function App() {
                     <div className="pt-2">
                       <button 
                         onClick={() => navigateTo('about')}
-                        className="px-8 py-4.5 bg-[#7E4015] hover:bg-[#F8F1E7] hover:text-[#2D2A26] text-[#F8F1E7] font-bold text-xs uppercase tracking-widest rounded-none inline-flex items-center gap-2.5 transition-all shadow-md"
+                        className="px-8 py-4.5 border bg-[#7E4015] hover:bg-[#F8F1E7] hover:text-[#2D2A26] text-[#F8F1E7] font-bold text-xs uppercase tracking-widest rounded-2xl inline-flex items-center gap-2.5 transition-all shadow-md"
                       >
                         <span>{t.about_read_more}</span>
                         <ArrowRight className="h-4 w-4" />
@@ -413,8 +416,8 @@ export default function App() {
                   </div>
                   
                   {/* Visual Bento Collage */}
-                  <div className="relative">
-                    <div className="aspect-square max-w-md mx-auto rounded-none overflow-hidden border border-[#F8F1E7]/10 shadow-2xl relative group">
+                  <div className="relative border-[#7E4015] rounded-2xl ">
+                    <div className="aspect-square max-w-md mx-auto rounded-3xl overflow-hidden border border-[#F8F1E7]/10 shadow-2xl relative group">
                       <img 
                       src={image1}
                         // src="https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?q=80&w=800" 
@@ -442,7 +445,7 @@ export default function App() {
                 </div>
                 <button 
                   onClick={() => navigateTo('products')}
-                  className="px-6 py-3 border border-[#2D2A26] text-[#2D2A26] hover:bg-[#7E4015]/10 rounded-none text-xs font-bold uppercase tracking-widest transition-all inline-flex items-center gap-1.5 self-start sm:self-auto"
+                  className="px-6 py-3 border border-[#2D2A26] bg-[#7E4015] text-[#F8F1E7] hover:bg-[#7E4015]/10 hover:text-[#2D2A26] rounded-2xl text-xs font-bold uppercase tracking-widest transition-all inline-flex items-center gap-1.5 self-start sm:self-auto"
                 >
                   <span>{t.view_all}</span>
                   <ChevronRight className="h-4 w-4" />
@@ -454,7 +457,7 @@ export default function App() {
                 {products.filter(p => p.is_featured).slice(0, 3).map((prod) => (
                   <div 
                     key={prod.id} 
-                    className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none flex flex-col group transition-all duration-300 hover:border-[#7E4015] hover:shadow-lg"
+                    className="bg-white border border-[#2D2A26]/10 rounded-2xl overflow-hidden shadow-none flex flex-col group transition-all duration-300 hover:border-[#7E4015] hover:shadow-lg"
                   >
                     <div className="relative h-64 overflow-hidden bg-gray-50">
                       <img 
@@ -488,7 +491,7 @@ export default function App() {
                         </button>
                         <button 
                           onClick={() => triggerInquiryForProduct(prod)}
-                          className="px-4 py-2.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] rounded-none text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                          className="px-4 py-2.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[rgb(22,180,11)] hover:text-[#2D2A26] rounded-2xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
                         >
                           Inquire
                         </button>
@@ -539,52 +542,55 @@ export default function App() {
             </div>
 
             {/* Parallax Coffee Highlands Banner */}
-            <div className="h-[450px] rounded-none overflow-hidden relative shadow-lg">
-              <img
-              src={image1} 
-                // src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1200" 
-                className="w-full h-full object-cover scale-102 transition-transform duration-1000" 
-                alt="Ethiopian Highlands Sourcing" 
+            <div className="h-112.5 rounded-2xl overflow-hidden relative shadow-lg">
+              <video
+                className="w-full h-full object-cover scale-102 transition-transform duration-1000"
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster={image1}
+                src={aboutBannerVideo}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#2D2A26]/90 via-transparent to-transparent"></div>
               <div className="absolute bottom-8 left-8 sm:left-12 text-[#F8F1E7] space-y-2 max-w-xl">
-                <span className="bg-[#7E4015] text-[10px] font-bold px-3 py-1 uppercase tracking-widest rounded-none">Our Cradle</span>
-                <h3 className="font-serif text-2xl sm:text-3xl font-bold">Southern Highlands single-origins</h3>
+                <span className="bg-[#7E4015] text-[10px] font-bold px-3 py-1 uppercase tracking-widest rounded-none">Our Showroom</span>
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold">Konjo Coffee showroom has many Products.</h3>
               </div>
             </div>
 
             {/* Heritage / Mission / Vision / Values */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               
-              <div className="space-y-6 bg-white p-8 sm:p-10 rounded-none border border-[#2D2A26]/10 shadow-none">
+              <div className="space-y-6 bg-white p-8 sm:p-10 rounded-2xl border border-[#2D2A26]/10 shadow-none">
                 <h2 className="font-serif text-2xl font-bold text-[#2D2A26] border-b border-[#2D2A26]/10 pb-3">{t.about_history}</h2>
-                <p className="text-sm text-gray-500 leading-relaxed font-light">{t.about_history_text}</p>
+                <p className="text-lg text-gray-500 leading-relaxed font-light">{t.about_history_text}</p>
               </div>
 
               <div className="space-y-6">
                 
-                <div className="bg-[#2D2A26] text-[#F8F1E7] p-8 rounded-none border border-transparent shadow-none space-y-3">
-                  <h3 className="font-serif text-xl font-bold text-[#7E4015]">{t.about_mission}</h3>
-                  <p className="text-sm text-[#F8F1E7]/80 leading-relaxed font-light">{t.about_mission_text}</p>
+                <div className="bg-[#2D2A26] text-[#F8F1E7] p-8 rounded-2xl border border-transparent shadow-none space-y-3">
+                  <h3 className="font-serif text-2xl font-bold text-[#7E4015] border-b border-[#ffffff]/50 pt-3">{t.about_mission}</h3>
+                  <p className="text-lg text-[#F8F1E7]/80 leading-relaxed font-light">{t.about_mission_text}</p>
                 </div>
 
-                <div className="bg-white p-8 rounded-none border border-[#2D2A26]/10 shadow-none space-y-3">
-                  <h3 className="font-serif text-xl font-bold text-[#2D2A26]">{t.about_vision}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-light">{t.about_vision_text}</p>
+                <div className="bg-white p-8 rounded-2xl border border-[#2D2A26]/10 shadow-none space-y-3">
+                  <h3 className="font-serif text-2xl font-bold text-[#2D2A26] border-b border-[#2D2A26]/10 pt-3">{t.about_vision}</h3>
+                  <p className="text-lg text-gray-500 leading-relaxed font-light">{t.about_vision_text}</p>
                 </div>
 
               </div>
             </div>
 
             {/* Values Details */}
-            <div className="bg-white p-8 sm:p-12 rounded-none border border-[#2D2A26]/10 shadow-none space-y-8">
+            <div className="bg-white p-8 sm:p-12 rounded-2xl border border-[#2D2A26]/10 shadow-none space-y-8">
               <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#2D2A26] text-center">{t.about_values}</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="space-y-2">
+                <div className="space-y-2 border-r border-[#2D2A26]/50 ">
                   <h4 className="font-serif font-bold text-lg text-[#7E4015]">{t.about_values_quality}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{t.about_values_quality_text}</p>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 border-r border-[#2D2A26]/50">
                   <h4 className="font-serif font-bold text-lg text-[#7E4015]">{t.about_values_integrity}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{t.about_values_integrity_text}</p>
                 </div>
@@ -596,14 +602,15 @@ export default function App() {
             </div>
 
             {/* Processing Facility Details */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center bg-[#2D2A26] text-[#F8F1E7] p-8 sm:p-12 rounded-none border border-[#2D2A26]/10 shadow-none">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center bg-[#2D2A26] text-[#F8F1E7] p-8 sm:p-12 rounded-2xl border border-[#2D2A26]/10 shadow-none">
               <div className="space-y-4">
                 <span className="text-xs uppercase font-bold text-[#7E4015] tracking-[0.2em] block">Addis Ababa Mills & Sorting</span>
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold">{t.about_facilities}</h3>
-                <p className="text-sm text-[#F8F1E7]/85 font-light leading-relaxed">{t.about_facilities_text}</p>
+                <p className="text-md text-[#F8F1E7]/85 font-light leading-relaxed">{t.about_facilities_text}</p>
               </div>
-              <div className="h-64 sm:h-80 rounded-none overflow-hidden border border-[#F8F1E7]/10">
-                <img src="https://images.unsplash.com/photo-1524350876685-274059332603?q=80&w=800" className="w-full h-full object-cover" alt="Processing Stations" />
+              <div className="h-64 sm:h-80 rounded-2xl overflow-hidden border border-[#F8F1E7]/10">
+                <img src= {image3} className="w-full h-full object-cover" alt="Processing Stations" />
+                {/* <img src="https://images.unsplash.com/photo-1524350876685-274059332603?q=80&w=800" className="w-full h-full object-cover" alt="Processing Stations" /> */}
               </div>
             </div>
 
