@@ -32,6 +32,14 @@
       "name_am": "ልዩ ጥሬ እምቡጦች እና ጌሻ",
       "description_en": "Extremely rare single-farm lots, anaerobic fermentations, and wild Gesha forest harvests with cup scores above 88+.",
       "description_am": "እጅግ በጣም ጥቂት የአንድ እርሻ ሰብሎች፣ የአናኢሮቢክ ፍላት እና የዱር ጌሻ ደን ምርቶች ከ88 በላይ የኩባያ ነጥብ ያላቸው።"
+    },
+    {
+      "slug": "Production",
+      "name_en": "Production Process",
+      "name_am": "ፕሮዳክሺን",
+      "description_en": "Production Process in Fabrica",
+      "description_am": "ፋብሪካ ዉስጥ ፕሮዳክሺን ፕሮሰስ",
+      "id": "cat-4ae858a8-45ff-4d2d-a23f-21348689fca9"
     }
   ],
   "products": [
@@ -57,7 +65,7 @@
       "availability_am": "በክምችት ላይ ይገኛል / የወቅታዊ ኮንቴይነር ኮንትራቶች ይገኛሉ",
       "price_en": "Inquire for FOB Djibouti pricing",
       "price_am": "ለFOB ጅቡቲ ዋጋ ጥያቄ ያቅርቡ",
-      "image_url": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800",
+      "image_url": "/uploads/1783721437072-2f22dc49-af8b-4999-9dd1-6ec9148e1ea4.jpg",
       "elevation": "1,950m - 2,200m",
       "is_featured": true,
       "created_at": "2026-01-10T12:00:00Z"
@@ -169,6 +177,33 @@
       "elevation": "1,600m - 1,850m",
       "is_featured": false,
       "created_at": "2026-01-18T12:00:00Z"
+    },
+    {
+      "category_id": "cat-4ae858a8-45ff-4d2d-a23f-21348689fca9",
+      "slug": "fabrica",
+      "title_en": "Packed Coffee",
+      "title_am": "የታሸገ ቡና",
+      "description_en": "Packed Coffee Packed Coffee Packed Coffee Packed Coffee Packed Coffee",
+      "description_am": " ጥራት ያለው የታሸገ ቡና",
+      "content_en": "",
+      "content_am": "",
+      "origin_en": "",
+      "origin_am": "",
+      "grade_en": "",
+      "grade_am": "",
+      "processing_en": "",
+      "processing_am": "",
+      "packaging_en": "",
+      "packaging_am": "",
+      "availability_en": "",
+      "availability_am": "",
+      "price_en": "",
+      "price_am": "",
+      "image_url": "/uploads/1783721994507-db9d018f-6ad1-4c17-88c2-6659a15aa00c.jpg",
+      "elevation": "1,800m",
+      "is_featured": true,
+      "id": "prod-db8951e9-22e3-49e2-887b-3a92201f090b",
+      "created_at": "2026-07-10T22:20:44.158Z"
     }
   ],
   "services": [
@@ -246,11 +281,11 @@
   "gallery_images": [
     {
       "id": "gal-1",
-      "category_en": "Coffee Farming",
-      "category_am": "ቡና እርሻ",
+      "category_en": "Production Processing",
+      "category_am": "የምርት ሂደት",
       "title_en": "Highland Forest Arabica Trees",
-      "title_am": "የደጋ ጫካ አረቢካ ዛፎች",
-      "image_url": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800",
+      "title_am": "የደጋ ጫካ አረቢካ ቡና ምርት",
+      "image_url": "/uploads/1783722135115-4001c82e-4737-47ba-9e56-6ab0a44d4828.png",
       "description_en": "Shade-grown coffee growing naturally under indigenous forest canopies in Guji at 2,100 meters above sea level.",
       "description_am": "በባህላዊ የደን ጥላ ስር በጉጂ ዞን በባህር ጠለል በላይ በ2,100 ሜትር ከፍታ ላይ በደህንነት የሚበቅል ቡና።"
     },
@@ -295,14 +330,24 @@
       "id": "gal-a06e9b39-6170-4c5d-a6f3-d87f1bb2d44e"
     },
     {
-      "category_en": "Processing",
-      "category_am": "ማቀነባበር",
-      "title_en": "new-coffee",
-      "title_am": "አዲስ ቡና",
-      "image_url": "https://boleairport.com/wp-content/uploads/2023/05/Coffee-Houses-and-Modern-Coffee-Culture-in-Ethiopia-scaled.jpg",
+      "category_en": "show room",
+      "category_am": "መሸጫ ቦታ",
+      "title_en": "show room ",
+      "title_am": "መሸጫ ቦታ",
+      "image_url": "/uploads/1783722333308-90a8e690-7424-4ba7-9aa7-c6f005f5e389.jpg",
       "description_en": "",
       "description_am": "",
-      "id": "gal-6957d985-834b-40cd-9527-b4602c2b716e"
+      "id": "gal-11b7ad3f-6737-4fa2-b1a8-11f3975691ee"
+    },
+    {
+      "category_en": "show room",
+      "category_am": "መሸጫ ቦታ",
+      "title_en": "show room ",
+      "title_am": "መሸጫ ቦታ",
+      "image_url": "/uploads/1783722443898-a6271e42-0cb9-4746-b9e9-088ab5ef3c03.jpg",
+      "description_en": "",
+      "description_am": "",
+      "id": "gal-8d2f7a65-3d46-42ad-9ea1-056c8e80b6c9"
     }
   ],
   "inquiries": [

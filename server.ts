@@ -11,7 +11,13 @@ const requestedPort = Number(process.env.PORT ?? NaN);
 const PORT = Number.isInteger(requestedPort) && requestedPort > 0 ? requestedPort : DEFAULT_PORT;
 
 // Enable JSON parser with sufficient limit
+import fs from 'fs';
 app.use(express.json({ limit: '10mb' }));
+
+// Serve uploaded files from /uploads (public)
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir));
 
 // Simple secure session token helper
 const JWT_SECRET = 'konjo_buna_token_secret_key_2026';
@@ -47,6 +53,37 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
   }
   next();
 }
+
+// Upload endpoint for admins: accepts JSON { filename, data } where data is a data URL (base64)
+app.post('/api/admin/upload', requireAdmin, async (req, res) => {
+  const { filename, data } = req.body as { filename?: string; data?: string };
+  if (!filename || !data) return res.status(400).json({ error: 'filename and data are required' });
+
+  // Expect dataURL format: data:image/png;base64,AAA...
+  const match = /^data:(image\/(png|jpeg|jpg|webp));base64,(.+)$/.exec(data);
+  if (!match) return res.status(400).json({ error: 'Invalid data format. Expected data URL with base64.' });
+  const mime = match[1];
+  const b64 = match[3];
+
+  const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+  if (!allowed.includes(mime)) return res.status(400).json({ error: 'Invalid image type' });
+
+  const buffer = Buffer.from(b64, 'base64');
+  const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+  if (buffer.length > MAX_BYTES) return res.status(413).json({ error: 'File too large' });
+
+  const ext = mime === 'image/jpeg' || mime === 'image/jpg' ? '.jpg' : '.' + mime.split('/')[1];
+  const outName = Date.now() + '-' + crypto.randomUUID() + ext;
+  const outPath = path.join(uploadsDir, outName);
+  try {
+    fs.writeFileSync(outPath, buffer);
+    const url = `/uploads/${outName}`;
+    res.json({ url });
+  } catch (err) {
+    console.error('Upload save error', err);
+    res.status(500).json({ error: 'Failed to save file' });
+  }
+});
 
 // --- API ENDPOINTS ---
 

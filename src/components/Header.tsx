@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Coffee, Search, Menu, X, Globe } from 'lucide-react';
+import logoImage from '../../images/logo5.png';
 import { ViewType } from '../types.js';
 import { translations } from '../translations.js';
 
@@ -61,7 +62,7 @@ export default function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#2D2A26] border-b border-[#2D2A26]/10 text-[#2D2A26] transition-all">
+    <header className="sticky top-0 z-50 bg-[#7E4015] border-b border-[#2D2A26]/10 text-[#2D2A26] transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-24">
           
@@ -71,10 +72,12 @@ export default function Header({
             className="flex items-center gap-3 cursor-pointer group"
             id="header-brand-logo"
           >
-            <div className="w-10 h-10 bg-[#7E4015] rounded-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105 shadow-md">
-              <div className="w-4 h-6 border-2 border-[#F8F1E7] rounded-full flex items-center justify-center">
-                <div className="w-1 h-1 bg-[#F8F1E7] rounded-full"></div>
-              </div>
+            <div className="w-24 h-22 bg-[#7E4015] rounded-none flex items-center justify-center transition-transform duration-500 group-hover:scale-105 shadow-md">
+              <img
+                src={logoImage}
+                alt="Konjo Buna logo"
+                className="w-full h-full rounded-none object-cover"
+              />
             </div>
             <div>
               <h1 className="font-serif text-2xl lg:mr-6 tracking-tight leading-none font-bold text-[#ffffff] group-hover:text-[#7E4015] transition-colors uppercase">
@@ -95,8 +98,8 @@ export default function Header({
                   onClick={() => handleNav(item.view)}
                   className={`py-1 text-xs font-semibold tracking-widest uppercase transition-all relative ${
                     isActive 
-                      ? 'text-[#ffffff] font-bold' 
-                      : 'text-[#ffffff]/70 hover:text-[#7E4015]'
+                      ? 'text-[#ffffff] font-bold border-b-4 border-[#2D2A26]' 
+                      : 'text-[#ffffff] hover:text-[#2D2A26]'
                   }`}
                 >
                   {item.label}

@@ -4,6 +4,7 @@ import {
   Mail, Users, Settings, Plus, Edit2, Trash2, Eye, CheckCircle, 
   X, Save, FileText, Globe, Key 
 } from 'lucide-react';
+import ImageUpload from './ImageUpload';
 import { 
   Product, ProductCategory, Service, NewsPost, 
   GalleryImage, Inquiry, NewsletterSubscriber, SiteSettings 
@@ -769,13 +770,8 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#2D2A26]/80 uppercase">Image Resource URL</label>
-                  <input
-                    type="url"
-                    name="image_url"
-                    defaultValue={currentEditItem?.image_url || ''}
-                    className="mt-1 block w-full bg-[#F8F1E7]/20 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none"
-                  />
+                  <label className="block text-xs font-bold text-[#2D2A26]/80 uppercase">Image</label>
+                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} token={token} />
                 </div>
 
                 <div className="md:col-span-2">
@@ -1224,13 +1220,8 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-[#2D2A26]/80">Service Representative Photo URL</label>
-                  <input
-                    type="url"
-                    name="image_url"
-                    defaultValue={currentEditItem?.image_url || ''}
-                    className="mt-1 block w-full bg-[#F8F1E7]/20 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none"
-                  />
+                  <label className="block text-xs font-bold text-[#2D2A26]/80">Service Image</label>
+                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} token={token} />
                 </div>
               </div>
               <div className="flex gap-4">
@@ -1309,13 +1300,8 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#2D2A26]/80">Representative Photo URL</label>
-                  <input
-                    type="url"
-                    name="image_url"
-                    defaultValue={currentEditItem?.image_url || ''}
-                    className="mt-1 block w-full bg-[#F8F1E7]/20 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none"
-                  />
+                  <label className="block text-xs font-bold text-[#2D2A26]/80">Article Image</label>
+                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} token={token} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#2D2A26]/80">Title (English)</label>
@@ -1495,15 +1481,8 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#2D2A26]/80">Image Source URL</label>
-                  <input
-                    type="url"
-                    name="image_url"
-                    required
-                    defaultValue={currentEditItem?.image_url || ''}
-                    placeholder="https://images.unsplash.com/..."
-                    className="mt-1 block w-full bg-[#F8F1E7]/20 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none"
-                  />
+                  <label className="block text-xs font-bold text-[#2D2A26]/80">Gallery Image</label>
+                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} token={token} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

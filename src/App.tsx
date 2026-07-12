@@ -13,7 +13,9 @@ import image1 from '../images/image-1.jpg';
 import packing from '../images/packing.png';
 import aboutBannerVideo from '../images/video.MOV';
 import image3 from '../images/IMG_8580.png';
+import logos from '../images/logo3.jpg';
 
+const video = 'https://www.youtube.com/embed/34i7bXsD_ZI?autoplay=1&mute=1&loop=1&playlist=34i7bXsD_ZI&controls=1&playsinline=1&rel=0';
 export default function App() {
   // Localization State
   const [lang, setLang] = useState<'en' | 'am'>(() => {
@@ -65,6 +67,45 @@ export default function App() {
   });
 
   const t = translations[lang];
+
+  const highlightCards = [
+    {
+      title: lang === 'en' ? '100% Premium Ethiopian Arabica' : '100% ከፍተኛ ጥራት ያለው የኢትዮጵያ አረቢካ',
+      description: lang === 'en' ? 'Pure Ethiopian Arabica coffee selected for quality, aroma, and authentic origin.' : 'በጥራቱ፣ በመዓዛው እና በትክክለኛ አመጣጡ የተመረጠ ንጹህ የኢትዮጵያ አረቢካ ቡና።',
+      icon: Coffee,
+      accent: 'from-[#7E4015] to-[#A45C20]'
+    },
+    {
+      title: lang === 'en' ? 'Sidama, Worka & Yirgachefe Focus' : 'በሲዳማ፣ ወርቃ እና ይርጋጨፌ ላይ ልዩ ትኩረት',
+      description: lang === 'en' ? 'Special focus on Ethiopia’s respected coffee-growing origins known for unique flavor profiles.' : 'በልዩ የጣዕም ባህሪያቸው በሚታወቁ የኢትዮጵያ ታዋቂ ቡና አብቃይ አካባቢዎች ላይ ልዩ ትኩረት።',
+      icon: Globe,
+      accent: 'from-[#2D2A26] to-[#5A493D]'
+    },
+    {
+      title: lang === 'en' ? 'Carefully Selected & Expertly Roasted' : 'በጥንቃቄ የተመረጠ እና በሙያ የተቆላ',
+      description: lang === 'en' ? 'Every batch is selected and roasted with care to bring out rich aroma and balanced taste.' : 'እያንዳንዱ ምርት የበለጸገ መዓዛና ሚዛናዊ ጣዕም እንዲኖረው በጥንቃቄ ተመርጦ ይቆላል።',
+      icon: CheckCircle,
+      accent: 'from-[#A45C20] to-[#D08A44]'
+    },
+    {
+      title: lang === 'en' ? 'Rich Aroma & Full-Bodied Flavor' : 'የበለጸገ መዓዛ እና ሙሉ ጣዕም',
+      description: lang === 'en' ? 'A smooth, full-bodied coffee experience with deep aroma and satisfying flavor.' : 'ጥልቅ መዓዛ፣ ሙሉ ጣዕም እና አርኪ የቡና ተሞክሮ።',
+      icon: Layers,
+      accent: 'from-[#3F2A1C] to-[#7E4015]'
+    },
+    {
+      title: lang === 'en' ? 'Freshly Packed for Quality' : 'ጥራቱን ለመጠበቅ ትኩስ ሆኖ የታሸገ',
+      description: lang === 'en' ? 'Packed fresh to preserve natural flavor, aroma, and product freshness.' : 'ተፈጥሯዊ ጣዕሙን፣ መዓዛውን እና ትኩስነቱን ለመጠበቅ ትኩስ ሆኖ የታሸገ።',
+      icon: Handshake,
+      accent: 'from-[#7E4015] to-[#5A2E10]'
+    },
+    {
+      title: lang === 'en' ? 'Suitable for Every Brewing Style' : 'ለሁሉም የቡና አዘገጃጀት ዘዴ ተስማሚ',
+      description: lang === 'en' ? 'Ideal for espresso, filter coffee, French press, and traditional Ethiopian coffee ceremonies.' : 'ለኤስፕሬሶ፣ ለፊልተር ቡና፣ ለፈረንሳይ ፕሬስ እና ለባህላዊ የኢትዮጵያ የቡና ሥነ ሥርዓት ተስማሚ።',
+      icon: Coffee,
+      accent: 'from-[#2D2A26] to-[#7E4015]'
+    }
+  ];
 
   const phoneSetting = settings?.find(s => s.key === 'company_phone');
   const phoneVal = lang === 'en' 
@@ -255,9 +296,9 @@ export default function App() {
                     </span>
                     <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[0.95] text-[#2D2A26] -ml-1">
                       {lang === 'en' ? (
-                        <>Highlands <br/> <span className="text-[#7E4015] italic">to Your</span> <br/> Cup.</>
+                        <>Brewed with<br/> <span className="text-[#7E4015] italic">Care Shared</span> <br/> With Loved Ones.</>
                       ) : (
-                        <>ከደጋማዎቹ <br/> <span className="text-[#7E4015] italic">እስከ</span> <br/> ሲኒዎ።</>
+                        <>በጥንቃቄ <br/> <span className="text-[#7E4015] italic">የተዘጋጀ</span> <br/> ከሚወዱት ጋር የሚጋሩት።</>
                       )}
                     </h1>
                   </div>
@@ -366,27 +407,30 @@ export default function App() {
 
             {/* HIGH-LIGHTS BENTO SECTION */}
             <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-[#2D2A26]/10">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[
-                  { title: t.highlights_moton, desc: t.highlights_moton_desc, icon: Globe, img: 'https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?q=80&w=600' },
-                  { title: t.highlights_quality, desc: t.highlights_quality_desc, icon: Coffee, img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=600' },
-                  { title: t.highlights_direct, desc: t.highlights_direct_desc, icon: Handshake, img: 'https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=600' },
-                ].map((hl, idx) => {
+              <div className="mb-10 flex justify-center">
+                <h2 className="max-w-3xl text-center font-serif text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-[#2D2A26]">
+                  {lang === 'en' ? 'Why Choose Konjo Coffee?' : 'ለምን ኮንጆ ቡናን ይመርጣሉ?'}
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {highlightCards.map((hl, idx) => {
                   const IconComp = hl.icon;
                   return (
-                    <div 
-                      key={idx} 
-                      className="group relative h-80 rounded-3xl overflow-hidden border border-[#2D2A26]/10 bg-[#2D2A26] flex flex-col justify-end p-8 transition-all duration-500 hover:-translate-y-1 hover:shadow-lg"
+                    <div
+                      key={idx}
+                      className="group relative min-h-[250px] overflow-hidden rounded-[28px] border border-[#2D2A26]/10 bg-white hover:bg[#7E4015] hover:text[#ffffff] p-6 shadow-[0_20px_45px_-24px_rgba(45,42,38,0.25)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_-24px_rgba(126,64,21,0.3)]"
                     >
-                      <div className="absolute inset-0 bg-cover  bg-center opacity-30 transition-transform duration-700 group-hover:scale-102" style={{ backgroundImage: `url('${hl.img}')` }}></div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#2D2A26] via-[#2D2A26]/80 to-transparent"></div>
-                      
-                      <div className="relative z-10 space-y-2">
-                        <div className="bg-[#7E4015] w-10 h-10 rounded-full flex items-center justify-center border border-[#F8F1E7]/10 mb-2 shadow">
-                          <IconComp className="h-5 w-5 text-[#F8F1E7]" />
-                        </div>
-                        <h3 className="font-serif text-xl font-bold text-[#F8F1E7]">{hl.title}</h3>
-                        <p className="text-xs text-[#F8F1E7]/70 font-light leading-relaxed">{hl.desc}</p>
+                      <div className="absolute left-5 top-5 text-[11px] font-bold uppercase tracking-[0.24em] text-[#7E4015]">
+                        0{idx + 1}
+                      </div>
+                      <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#7E4015]/10 bg-[#F8F1E7] text-[#7E4015] shadow-sm">
+                        <IconComp className="h-5 w-5" />
+                      </div>
+
+                      <div className="mb-1 flex h-full flex-col items-center justify-end text-center space-y-3">
+                        <h3 className="font-serif  text-xl font-semibold text-[#2D2A26]">{hl.title}</h3>
+                        <p className="text-sm  leading-relaxed text-[#2D2A26]/70">{hl.description}</p>
                       </div>
                     </div>
                   );
@@ -416,14 +460,22 @@ export default function App() {
                   </div>
                   
                   {/* Visual Bento Collage */}
-                  <div className="relative border-[#7E4015] rounded-2xl ">
+                  <div className="relative  ">
                     <div className="aspect-square max-w-md mx-auto rounded-3xl overflow-hidden border border-[#F8F1E7]/10 shadow-2xl relative group">
-                      <img 
-                      src={image1}
+                      <video
+                          className="w-full h-full object-cover scale-102 transition-transform duration-1000"
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          src={aboutBannerVideo}
+                        />
+                      {/* <img 
+                      src={logos}
                         // src="https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?q=80&w=800" 
                         className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-102" 
                         alt="Ethiopian Coffee Ceremony" 
-                      />
+                      /> */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                       <div className="absolute bottom-8 left-8 text-white">
                         <span className="text-[10px] uppercase tracking-widest font-bold text-[#7E4015]">Culture</span>
@@ -543,17 +595,18 @@ export default function App() {
 
             {/* Parallax Coffee Highlands Banner */}
             <div className="h-112.5 rounded-2xl overflow-hidden relative shadow-lg">
-              <video
-                className="w-full h-full object-cover scale-102 transition-transform duration-1000"
-                autoPlay
-                muted
-                loop
-                playsInline
-                poster={image1}
-                src={aboutBannerVideo}
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={video}
+                title="Konjo Coffee Highlands"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#2D2A26]/90 via-transparent to-transparent"></div>
-              <div className="absolute bottom-8 left-8 sm:left-12 text-[#F8F1E7] space-y-2 max-w-xl">
+            
+  
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#2D2A26]/90 via-transparent to-transparent"></div>
+              <div className="pointer-events-none absolute bottom-14 left-8 sm:left-12 text-[#F8F1E7] space-y-2 max-w-xl">
                 <span className="bg-[#7E4015] text-[10px] font-bold px-3 py-1 uppercase tracking-widest rounded-none">Our Showroom</span>
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold">Konjo Coffee showroom has many Products.</h3>
               </div>
@@ -584,20 +637,24 @@ export default function App() {
 
             {/* Values Details */}
             <div className="bg-white p-8 sm:p-12 rounded-2xl border border-[#2D2A26]/10 shadow-none space-y-8">
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#2D2A26] text-center">{t.about_values}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="space-y-2 border-r border-[#2D2A26]/50 ">
-                  <h4 className="font-serif font-bold text-lg text-[#7E4015]">{t.about_values_quality}</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed">{t.about_values_quality_text}</p>
-                </div>
-                <div className="space-y-2 border-r border-[#2D2A26]/50">
-                  <h4 className="font-serif font-bold text-lg text-[#7E4015]">{t.about_values_integrity}</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed">{t.about_values_integrity_text}</p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-serif font-bold text-lg text-[#7E4015]">{t.about_values_sustainability}</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed">{t.about_values_sustainability_text}</p>
-                </div>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#2D2A26] text-center">Core Values</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { icon: '✓', title: 'Quality', description: 'We are committed to delivering carefully selected, expertly processed, and consistently high-quality Ethiopian coffee.' },
+                  { icon: '🤝', title: 'Integrity', description: 'We build trust through honest communication, transparent business practices, and reliable partnerships.' },
+                  { icon: '🌱', title: 'Sustainability', description: 'We support responsible sourcing, environmentally mindful practices, and long-term community-focused growth.' },
+                  { icon: '❤️', title: 'Customer Focus', description: 'We listen to our customers and work to provide a satisfying coffee experience with dependable service.' },
+                  { icon: '🌍', title: 'Ethiopian Heritage', description: 'We proudly share Ethiopia’s rich coffee culture, origin, and tradition with local and international customers.' },
+                  { icon: '💡', title: 'Innovation', description: 'We continuously improve our processing, packaging, service, and customer experience to grow with the market.' },
+                ].map((value) => (
+                  <div key={value.title} className="space-y-3 rounded-2xl border border-[#2D2A26]/10 bg-[#F8F1E7]/40 p-6 transition-all hover:border-[#7E4015]/50 hover:shadow-md">
+                    <h4 className="flex items-center gap-2 font-serif font-bold text-lg text-[#7E4015]">
+                      <span aria-hidden="true">{value.icon}</span>
+                      <span>{value.title}</span>
+                    </h4>
+                    <p className="text-xs text-gray-500 leading-relaxed">{value.description}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -654,11 +711,11 @@ export default function App() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-[#2D2A26]/10 rounded-none shadow-none">
               
               {/* Category Selector Tabs */}
-              <div className="flex flex-wrap gap-2 w-full md:w-auto">
+              <div className="flex flex-wrap gap-2 w-full md:w-auto ">
                 <button
                   id="category-filter-all"
                   onClick={() => setSelectedCategoryFilter('all')}
-                  className={`px-4 py-2.5 rounded-none text-xs font-bold uppercase tracking-wider transition-all border ${
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all border ${
                     selectedCategoryFilter === 'all' 
                       ? 'bg-[#7E4015] border-[#7E4015] text-[#F8F1E7] shadow-sm' 
                       : 'border-[#2D2A26]/10 text-gray-600 hover:border-[#7E4015] hover:text-[#7E4015]'
@@ -671,7 +728,7 @@ export default function App() {
                     key={cat.id}
                     id={`category-filter-${cat.id}`}
                     onClick={() => setSelectedCategoryFilter(cat.id)}
-                    className={`px-4 py-2.5 rounded-none text-xs font-bold uppercase tracking-wider transition-all border ${
+                    className={`px-4 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all border ${
                       selectedCategoryFilter === cat.id 
                         ? 'bg-[#7E4015] border-[#7E4015] text-[#F8F1E7] shadow-sm' 
                         : 'border-[#2D2A26]/10 text-gray-600 hover:border-[#7E4015] hover:text-[#7E4015]'
@@ -719,26 +776,26 @@ export default function App() {
               }
 
               return (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="products-catalog-grid">
+                <div className="grid grid-cols-1  md:grid-cols-2 lg:grid-cols-3 gap-8" id="products-catalog-grid">
                   {filtered.map((prod) => (
                     <div 
                       key={prod.id} 
-                      className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none flex flex-col justify-between group transition-all duration-300 hover:border-[#7E4015] hover:shadow-lg"
+                      className="bg-white border border-[#2D2A26]/10 rounded-2xl overflow-hidden shadow-none flex flex-col justify-between group transition-all duration-300 hover:border-[#7E4015] hover:shadow-lg"
                     >
-                      <div className="relative h-64 overflow-hidden bg-gray-50">
+                      <div className="relative h-60 overflow-hidden bg-gray-50">
                         <img 
                           src={prod.image_url} 
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" 
                           alt="" 
                         />
-                        <div className="absolute top-4 left-4 bg-[#2D2A26] border border-[#7E4015]/30 text-[#F8F1E7] text-[9px] font-bold px-3 py-1.5 rounded-none uppercase tracking-wider">
+                        <div className="absolute top-2 left-4 bg-[#2D2A26] border border-[#7E4015]/30 text-[#F8F1E7] text-[9px] font-bold px-3 py-1.5 rounded-none uppercase tracking-wider">
                           {prod.elevation}
                         </div>
                       </div>
 
                       <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
                         <div className="space-y-2">
-                          <span className="text-[10px] font-mono font-bold text-[#7E4015] tracking-widest uppercase block">
+                          <span className="text-[8px] font-mono font-bold text-[#7E4015] tracking-widest uppercase block">
                             {lang === 'en' ? prod.origin_en : prod.origin_am}
                           </span>
                           <h3 className="font-serif text-xl font-bold text-[#2D2A26] leading-tight group-hover:text-[#7E4015] transition-colors">
@@ -752,14 +809,14 @@ export default function App() {
                         <div className="pt-4 border-t border-[#2D2A26]/5 flex items-center justify-between">
                           <button 
                             onClick={() => viewProductDetail(prod.slug)}
-                            className="text-[10px] font-bold uppercase tracking-wider text-[#2D2A26] hover:text-[#7E4015] inline-flex items-center gap-1 transition-all"
+                            className="text-[12px] font-bold uppercase tracking-wider text-[#2D2A26] hover:text-[#7E4015] inline-flex items-center gap-1 transition-all"
                           >
                             <span>{lang === 'en' ? 'Full Details' : 'ሙሉ መግለጫ'}</span>
                             <ArrowRight className="h-3.5 w-3.5" />
                           </button>
                           <button 
                             onClick={() => triggerInquiryForProduct(prod)}
-                            className="px-4 py-2.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] rounded-none text-xs font-bold uppercase tracking-wider transition-all shadow-sm"
+                            className="px-4 py-2.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] rounded-2xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm"
                           >
                             {lang === 'en' ? 'Inquire' : 'ጥያቄ አቅርብ'}
                           </button>
@@ -805,7 +862,7 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
                 
                 {/* Big Image Panel */}
-                <div className="aspect-[4/3] rounded-none overflow-hidden shadow-md relative border border-[#2D2A26]/10">
+                <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-md relative border border-[#2D2A26]/10">
                   <img src={prod.image_url} className="w-full h-full object-cover" alt="" />
                   <div className="absolute top-4 left-4 bg-[#2D2A26] text-white text-[9px] font-bold px-3 py-1.5 rounded-none uppercase tracking-wider">
                     {t.product_elevation}: {prod.elevation}
