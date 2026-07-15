@@ -15,7 +15,8 @@
     "prisma:studio": "prisma studio",
     "prisma:import-json": "tsx prisma/import-from-json.ts",
     "prisma:verify-repository": "tsx prisma/verify-prisma-repository.ts",
-    "admin:reset-password": "tsx scripts/reset-admin-password.ts"
+    "admin:reset-password": "tsx scripts/reset-admin-password.ts",
+    "smtp:verify": "tsx scripts/verify-smtp.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
