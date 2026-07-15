@@ -14,6 +14,7 @@ import packing from '../images/packing.png';
 import aboutBannerVideo from '../images/video.MOV';
 import image3 from '../images/IMG_8580.png';
 import logos from '../images/logo3.jpg';
+import { csrfHeaders } from './auth-client.ts';
 
 const video = 'https://www.youtube.com/embed/34i7bXsD_ZI?autoplay=1&mute=1&loop=1&playlist=34i7bXsD_ZI&controls=1&playsinline=1&rel=0';
 export default function App() {
@@ -24,7 +25,7 @@ export default function App() {
   });
 
   // Current view routing
-  const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [currentView, setCurrentView] = useState<ViewType>(() => window.location.pathname === '/admin/reset-password' ? 'admin' : 'home');
   const [selectedProductSlug, setSelectedProductSlug] = useState<string | null>(null);
   const [selectedNewsSlug, setSelectedNewsSlug] = useState<string | null>(null);
 
@@ -60,11 +61,8 @@ export default function App() {
   const [inquiryProductSelect, setInquiryProductSelect] = useState<string>('');
 
   // Admin authentication state
-  const [adminToken, setAdminToken] = useState<string | null>(() => localStorage.getItem('konjo_admin_token'));
-  const [adminUser, setAdminUser] = useState<{ username: string; name: string; role: string } | null>(() => {
-    const saved = localStorage.getItem('konjo_admin_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [adminUser, setAdminUser] = useState<{ id: string; username: string; email: string | null; name: string; role: string } | null>(null);
+  const [adminAuthLoading, setAdminAuthLoading] = useState(true);
 
   const t = translations[lang];
 
@@ -125,13 +123,14 @@ export default function App() {
   // Fetch collections from API
   const fetchCollections = async () => {
     try {
+      const freshRequest: RequestInit = { cache: 'no-store' };
       const [resProd, resCat, resSrv, resNews, resGal, resSet] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/categories'),
-        fetch('/api/services'),
-        fetch('/api/news'),
-        fetch('/api/gallery'),
-        fetch('/api/settings')
+        fetch('/api/products', freshRequest),
+        fetch('/api/categories', freshRequest),
+        fetch('/api/services', freshRequest),
+        fetch('/api/news', freshRequest),
+        fetch('/api/gallery', freshRequest),
+        fetch('/api/settings', freshRequest)
       ]);
 
       if (resProd.ok) setProducts(await resProd.json());
@@ -146,7 +145,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchCollections();
+    if (currentView !== 'admin') {
+      void fetchCollections();
+    }
+  }, [currentView]);
+
+  useEffect(() => {
+    localStorage.removeItem('konjo_admin_token');
+    localStorage.removeItem('konjo_admin_user');
+    void fetch('/api/auth/me', { cache: 'no-store' })
+      .then(async response => {
+        if (response.ok) setAdminUser((await response.json()).user);
+      })
+      .finally(() => setAdminAuthLoading(false));
   }, []);
 
   // Update language and persist
@@ -223,19 +234,18 @@ export default function App() {
   };
 
   // Admin Session Handlers
-  const handleAdminLogin = (token: string, user: { username: string; name: string; role: string }) => {
-    setAdminToken(token);
+  const handleAdminLogin = (user: { id: string; username: string; email: string | null; name: string; role: string }) => {
     setAdminUser(user);
-    localStorage.setItem('konjo_admin_token', token);
-    localStorage.setItem('konjo_admin_user', JSON.stringify(user));
     setCurrentView('admin');
   };
 
-  const handleAdminLogout = () => {
-    setAdminToken(null);
+  const handleAdminLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', headers: csrfHeaders(false) });
+    } catch {
+      // Clear local UI state even if the already-expired session cannot reach the server.
+    }
     setAdminUser(null);
-    localStorage.removeItem('konjo_admin_token');
-    localStorage.removeItem('konjo_admin_user');
     setCurrentView('home');
   };
 
@@ -272,7 +282,7 @@ export default function App() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onSearchSubmit={handleGlobalSearch}
-        isAdminLoggedIn={!!adminToken}
+        isAdminLoggedIn={!!adminUser}
         onLogout={handleAdminLogout}
         settings={settings}
       />
@@ -1555,10 +1565,11 @@ export default function App() {
         {/* 11. VIEW: ADMIN CMS DASHBOARD */}
         {currentView === 'admin' && (
           <AdminPanel 
-            token={adminToken}
+            currentUser={adminUser}
+            authLoading={adminAuthLoading}
             onLoginSuccess={handleAdminLogin}
             onLogout={handleAdminLogout}
-            onSettingsUpdate={fetchCollections}
+            onPublicDataUpdate={fetchCollections}
           />
         )}
 

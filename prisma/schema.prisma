@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Admin {
+  id           String               @id @db.VarChar(191)
+  username     String               @unique @db.VarChar(191)
+  email        String?              @unique @db.VarChar(320)
+  passwordHash String               @db.VarChar(255)
+  name         String               @db.VarChar(191)
+  role         String               @db.VarChar(100)
+  sessions     AdminSession[]
+  resetTokens  PasswordResetToken[]
+
+  @@map("admins")
+}
+
+model AdminSession {
+  id                    String    @id @db.VarChar(191)
+  admin_id              String    @db.VarChar(191)
+  token_hash            String    @unique @db.Char(64)
+  csrf_hash             String    @db.Char(64)
+  created_at            DateTime  @default(now()) @db.DateTime(3)
+  last_activity_at      DateTime  @db.DateTime(3)
+  absolute_expires_at   DateTime  @db.DateTime(3)
+  remember_me           Boolean   @default(false)
+  password_confirmed_at DateTime? @db.DateTime(3)
+  revoked_at            DateTime? @db.DateTime(3)
+  admin                 Admin     @relation(fields: [admin_id], references: [id], onDelete: Cascade)
+
+  @@index([admin_id])
+  @@index([absolute_expires_at])
+  @@map("admin_sessions")
+}
+
+model PasswordResetToken {
+  id         String    @id @db.VarChar(191)
+  admin_id   String    @db.VarChar(191)
+  token_hash String    @unique @db.Char(64)
+  created_at DateTime  @default(now()) @db.DateTime(3)
+  expires_at DateTime  @db.DateTime(3)
+  used_at    DateTime? @db.DateTime(3)
+  admin      Admin     @relation(fields: [admin_id], references: [id], onDelete: Cascade)
+
+  @@index([admin_id])
+  @@index([expires_at])
+  @@map("password_reset_tokens")
+}
+
+model ProductCategory {
+  id             String    @id @db.VarChar(191)
+  slug           String    @unique @db.VarChar(191)
+  name_en        String    @db.VarChar(255)
+  name_am        String    @db.VarChar(255)
+  description_en String    @db.Text
+  description_am String    @db.Text
+  products       Product[]
+
+  @@map("product_categories")
+}
+
+model Product {
+  id              String          @id @db.VarChar(191)
+  category_id     String          @db.VarChar(191)
+  slug            String          @unique @db.VarChar(191)
+  title_en        String          @db.VarChar(255)
+  title_am        String          @db.VarChar(255)
+  description_en  String          @db.Text
+  description_am  String          @db.Text
+  content_en      String          @db.LongText
+  content_am      String          @db.LongText
+  origin_en       String          @db.VarChar(255)
+  origin_am       String          @db.VarChar(255)
+  grade_en        String          @db.VarChar(255)
+  grade_am        String          @db.VarChar(255)
+  processing_en   String          @db.Text
+  processing_am   String          @db.Text
+  packaging_en    String          @db.Text
+  packaging_am    String          @db.Text
+  availability_en String          @db.Text
+  availability_am String          @db.Text
+  price_en        String          @db.VarChar(255)
+  price_am        String          @db.VarChar(255)
+  image_url       String          @db.Text
+  elevation       String          @db.VarChar(191)
+  is_featured     Boolean         @default(false)
+  created_at      DateTime        @default(now()) @db.DateTime(3)
+  category        ProductCategory @relation(fields: [category_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  inquiries       Inquiry[]
+
+  @@index([category_id])
+  @@map("products")
+}
+
+model Service {
+  id             String @id @db.VarChar(191)
+  slug           String @unique @db.VarChar(191)
+  title_en       String @db.VarChar(255)
+  title_am       String @db.VarChar(255)
+  description_en String @db.Text
+  description_am String @db.Text
+  content_en     String @db.LongText
+  content_am     String @db.LongText
+  icon_name      String @db.VarChar(100)
+  image_url      String @db.Text
+
+  @@map("services")
+}
+
+model NewsPost {
+  id           String   @id @db.VarChar(191)
+  slug         String   @unique @db.VarChar(191)
+  title_en     String   @db.VarChar(255)
+  title_am     String   @db.VarChar(255)
+  excerpt_en   String   @db.Text
+  excerpt_am   String   @db.Text
+  content_en   String   @db.LongText
+  content_am   String   @db.LongText
+  category_en  String   @db.VarChar(191)
+  category_am  String   @db.VarChar(191)
+  image_url    String   @db.Text
+  author_en    String   @db.VarChar(191)
+  author_am    String   @db.VarChar(191)
+  published_at DateTime @default(now()) @db.DateTime(3)
+
+  @@map("news_posts")
+}
+
+model GalleryImage {
+  id             String @id @db.VarChar(191)
+  category_en    String @db.VarChar(191)
+  category_am    String @db.VarChar(191)
+  title_en       String @db.VarChar(255)
+  title_am       String @db.VarChar(255)
+  image_url      String @db.Text
+  description_en String @db.Text
+  description_am String @db.Text
+
+  @@map("gallery_images")
+}
+
+model Inquiry {
+  id              String   @id @db.VarChar(191)
+  company_name    String   @db.VarChar(255)
+  contact_name    String   @db.VarChar(255)
+  email           String   @db.VarChar(320)
+  phone           String   @db.VarChar(100)
+  country         String   @db.VarChar(191)
+  product_id      String?  @db.VarChar(191)
+  coffee_type     String   @db.VarChar(255)
+  volume_required String   @db.VarChar(191)
+  target_price    String   @db.VarChar(191)
+  message         String   @db.LongText
+  status          String   @default("new") @db.VarChar(50)
+  created_at      DateTime @default(now()) @db.DateTime(3)
+  product         Product? @relation(fields: [product_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([product_id])
+  @@map("inquiries")
+}
+
+model NewsletterSubscriber {
+  id         String   @id @db.VarChar(191)
+  email      String   @unique @db.VarChar(320)
+  created_at DateTime @default(now()) @db.DateTime(3)
+
+  @@map("newsletter_subscribers")
+}
+
+model SiteSetting {
+  key      String @id @db.VarChar(191)
+  value_en String @db.Text
+  value_am String @db.Text
+
+  @@map("site_settings")
+}

@@ -6,9 +6,32 @@ import crypto from 'crypto';
 export interface Admin {
   id: string;
   username: string;
+  email: string | null;
   passwordHash: string;
   name: string;
   role: string;
+}
+
+export interface AdminSession {
+  id: string;
+  admin_id: string;
+  token_hash: string;
+  csrf_hash: string;
+  created_at: string;
+  last_activity_at: string;
+  absolute_expires_at: string;
+  remember_me: boolean;
+  password_confirmed_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface PasswordResetToken {
+  id: string;
+  admin_id: string;
+  token_hash: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
 }
 
 export interface ProductCategory {
@@ -119,6 +142,8 @@ export interface SiteSettings {
 
 export interface DatabaseSchema {
   admins: Admin[];
+  admin_sessions: AdminSession[];
+  password_reset_tokens: PasswordResetToken[];
   product_categories: ProductCategory[];
   products: Product[];
   services: Service[];
@@ -138,7 +163,10 @@ export function hashPassword(password: string): string {
 }
 
 export function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
+  if (!/^[a-f0-9]{128}$/i.test(hash)) return false;
+  const actual = Buffer.from(hashPassword(password), 'hex');
+  const expected = Buffer.from(hash, 'hex');
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 
 // Default initial seed data (Bilingual premium Ethiopian export details)
@@ -147,11 +175,14 @@ const INITIAL_DATABASE: DatabaseSchema = {
     {
       id: 'admin-1',
       username: 'admin',
-      passwordHash: hashPassword('admin123'), // Secure default but easily changeable in production
+      email: null,
+      passwordHash: hashPassword('admin123'), // Legacy JSON bootstrap account; rotate this password after setup.
       name: 'Konjo Export Administrator',
       role: 'Superadmin'
     }
   ],
+  admin_sessions: [],
+  password_reset_tokens: [],
   product_categories: [
     {
       id: 'cat-raw',
@@ -504,7 +535,17 @@ class DBManager {
     try {
       if (fs.existsSync(DB_FILE)) {
         const fileContent = fs.readFileSync(DB_FILE, 'utf-8');
-        this.data = JSON.parse(fileContent);
+        const parsed = JSON.parse(fileContent) as Partial<DatabaseSchema> & { admins?: Array<Admin & { email?: string | null }> };
+        this.data = {
+          ...INITIAL_DATABASE,
+          ...parsed,
+          admins: (parsed.admins ?? INITIAL_DATABASE.admins).map(admin => ({
+            ...admin,
+            email: typeof admin.email === 'string' && admin.email.trim() ? admin.email.trim().toLowerCase() : null,
+          })),
+          admin_sessions: parsed.admin_sessions ?? [],
+          password_reset_tokens: parsed.password_reset_tokens ?? [],
+        };
       } else {
         this.save();
       }
@@ -528,20 +569,154 @@ class DBManager {
     return this.data.admins;
   }
 
+  getAdminById(id: string): Admin | undefined {
+    this.load();
+    return this.data.admins.find(admin => admin.id === id);
+  }
+
   getAdminByUsername(username: string): Admin | undefined {
     this.load();
     return this.data.admins.find(a => a.username.toLowerCase() === username.toLowerCase());
   }
 
+  getAdminByEmail(email: string): Admin | undefined {
+    this.load();
+    const normalizedEmail = email.trim().toLowerCase();
+    return this.data.admins.find(admin => admin.email?.toLowerCase() === normalizedEmail);
+  }
+
   createAdmin(admin: Omit<Admin, 'id'>): Admin {
     this.load();
+    if (this.data.admins.some(existing => existing.username.toLowerCase() === admin.username.trim().toLowerCase())) {
+      const error = new Error('An admin with this username already exists.') as Error & { code: string };
+      error.code = 'DUPLICATE';
+      throw error;
+    }
+    if (admin.email && this.data.admins.some(existing => existing.email?.toLowerCase() === admin.email?.trim().toLowerCase())) {
+      const error = new Error('An admin with this email already exists.') as Error & { code: string };
+      error.code = 'DUPLICATE';
+      throw error;
+    }
     const newAdmin: Admin = {
       ...admin,
+      username: admin.username.trim(),
+      email: admin.email?.trim().toLowerCase() || null,
       id: 'admin-' + crypto.randomUUID()
     };
     this.data.admins.push(newAdmin);
     this.save();
     return newAdmin;
+  }
+
+  updateAdminPassword(id: string, passwordHash: string): Admin | undefined {
+    this.load();
+    const idx = this.data.admins.findIndex(admin => admin.id === id);
+    if (idx === -1) return undefined;
+    this.data.admins[idx].passwordHash = passwordHash;
+    this.save();
+    return this.data.admins[idx];
+  }
+
+  updateAdmin(id: string, updates: Pick<Admin, 'name' | 'role' | 'email'>): Admin | undefined {
+    this.load();
+    const idx = this.data.admins.findIndex(admin => admin.id === id);
+    if (idx === -1) return undefined;
+    const normalizedEmail = updates.email?.trim().toLowerCase() || null;
+    if (normalizedEmail && this.data.admins.some(admin => admin.id !== id && admin.email?.toLowerCase() === normalizedEmail)) {
+      const error = new Error('An admin with this email already exists.') as Error & { code: string };
+      error.code = 'DUPLICATE';
+      throw error;
+    }
+    this.data.admins[idx] = { ...this.data.admins[idx], ...updates, email: normalizedEmail };
+    this.save();
+    return this.data.admins[idx];
+  }
+
+  deleteAdmin(id: string): boolean {
+    this.load();
+    const initialLength = this.data.admins.length;
+    this.data.admins = this.data.admins.filter(admin => admin.id !== id);
+    if (this.data.admins.length === initialLength) return false;
+    this.save();
+    return true;
+  }
+
+  countSuperAdmins(): number {
+    this.load();
+    return this.data.admins.filter(admin => admin.role.trim().toLowerCase().replace(/\s+/g, '') === 'superadmin').length;
+  }
+
+  createAdminSession(session: Omit<AdminSession, 'id'>): AdminSession {
+    this.load();
+    const created = { ...session, id: `session-${crypto.randomUUID()}` };
+    this.data.admin_sessions.push(created);
+    this.save();
+    return created;
+  }
+
+  getAdminSessionByTokenHash(tokenHash: string): AdminSession | undefined {
+    this.load();
+    return this.data.admin_sessions.find(session => session.token_hash === tokenHash);
+  }
+
+  touchAdminSession(id: string, lastActivityAt: string): AdminSession | undefined {
+    this.load();
+    const session = this.data.admin_sessions.find(item => item.id === id);
+    if (!session) return undefined;
+    session.last_activity_at = lastActivityAt;
+    this.save();
+    return session;
+  }
+
+  confirmAdminSession(id: string, confirmedAt: string): AdminSession | undefined {
+    this.load();
+    const session = this.data.admin_sessions.find(item => item.id === id);
+    if (!session) return undefined;
+    session.password_confirmed_at = confirmedAt;
+    this.save();
+    return session;
+  }
+
+  revokeAdminSession(id: string, revokedAt: string): boolean {
+    this.load();
+    const session = this.data.admin_sessions.find(item => item.id === id);
+    if (!session) return false;
+    session.revoked_at = revokedAt;
+    this.save();
+    return true;
+  }
+
+  revokeAdminSessionsByAdminId(adminId: string, revokedAt: string): number {
+    this.load();
+    let count = 0;
+    for (const session of this.data.admin_sessions) {
+      if (session.admin_id === adminId && !session.revoked_at) {
+        session.revoked_at = revokedAt;
+        count += 1;
+      }
+    }
+    if (count) this.save();
+    return count;
+  }
+
+  createPasswordResetToken(token: Omit<PasswordResetToken, 'id'>): PasswordResetToken {
+    this.load();
+    for (const existing of this.data.password_reset_tokens) {
+      if (existing.admin_id === token.admin_id && !existing.used_at) existing.used_at = token.created_at;
+    }
+    const created = { ...token, id: `reset-${crypto.randomUUID()}` };
+    this.data.password_reset_tokens.push(created);
+    this.save();
+    return created;
+  }
+
+  consumePasswordResetToken(tokenHash: string, usedAt: string): PasswordResetToken | undefined {
+    this.load();
+    const token = this.data.password_reset_tokens.find(item => item.token_hash === tokenHash);
+    if (!token || token.used_at || new Date(token.expires_at).getTime() <= new Date(usedAt).getTime()) return undefined;
+    token.used_at = usedAt;
+    this.save();
+    return token;
   }
 
   // Categories CRUD

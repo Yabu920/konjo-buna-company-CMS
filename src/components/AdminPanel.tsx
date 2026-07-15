@@ -2,19 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { 
   Lock, LayoutDashboard, Coffee, Layers, Newspaper, Image, 
   Mail, Users, Settings, Plus, Edit2, Trash2, Eye, CheckCircle, 
-  X, Save, FileText, Globe, Key 
+  X, Save, FileText, Globe, Key, ShieldCheck
 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
+import { csrfHeaders } from '../auth-client.ts';
 import { 
   Product, ProductCategory, Service, NewsPost, 
   GalleryImage, Inquiry, NewsletterSubscriber, SiteSettings 
 } from '../types.js';
 
 interface AdminPanelProps {
-  token: string | null;
-  onLoginSuccess: (token: string, user: { username: string; name: string; role: string }) => void;
-  onLogout: () => void;
-  onSettingsUpdate?: () => void;
+  currentUser: AdminUser | null;
+  authLoading: boolean;
+  onLoginSuccess: (user: AdminUser) => void;
+  onLogout: () => void | Promise<void>;
+  onPublicDataUpdate?: () => void | Promise<void>;
+}
+
+interface AdminUser {
+  id: string;
+  username: string;
+  email: string | null;
+  name: string;
+  role: string;
 }
 
 interface SettingFieldRowProps {
@@ -80,14 +90,22 @@ type TabType =
   | 'gallery' 
   | 'inquiries' 
   | 'subscribers' 
-  | 'settings';
+  | 'settings'
+  | 'admin-users';
 
-export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettingsUpdate }: AdminPanelProps) {
+export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, onLogout, onPublicDataUpdate }: AdminPanelProps) {
   // Login State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryMessage, setRecoveryMessage] = useState('');
+  const [resetForm, setResetForm] = useState({ password: '', confirm: '' });
+  const [resetMessage, setResetMessage] = useState('');
+  const [recentPassword, setRecentPassword] = useState('');
 
   // Active workspace tab
   const [activeTab, setActiveTab] = useState<TabType>('products');
@@ -101,6 +119,13 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [settings, setSettings] = useState<SiteSettings[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+
+  const [newAdmin, setNewAdmin] = useState({ username: '', email: '', name: '', role: 'Admin', password: '' });
+  const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
+  const [resetAdmin, setResetAdmin] = useState<AdminUser | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [myPassword, setMyPassword] = useState({ current: '', next: '', confirm: '' });
 
   // Loading and action state
   const [loading, setLoading] = useState(false);
@@ -110,23 +135,23 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
 
   // Notification feedback
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const canManageAdmins = currentUser?.role.trim().toLowerCase().replace(/\s+/g, '') === 'superadmin';
 
   // Load backend collections
   const fetchData = async () => {
-    if (!token) return;
+    if (!currentUser) return;
     setLoading(true);
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      const [resProd, resCat, resSrv, resNews, resGal, resInq, resSub, resSet] = await Promise.all([
+      const [resProd, resCat, resSrv, resNews, resGal, resInq, resSub, resSet, resAdmins] = await Promise.all([
         fetch('/api/products'),
         fetch('/api/categories'),
         fetch('/api/services'),
         fetch('/api/news'),
         fetch('/api/gallery'),
-        fetch('/api/inquiries', { headers }),
-        fetch('/api/newsletter', { headers }),
-        fetch('/api/settings')
+        fetch('/api/inquiries'),
+        fetch('/api/newsletter'),
+        fetch('/api/settings'),
+        canManageAdmins ? fetch('/api/admin/users') : Promise.resolve(null)
       ]);
 
       if (resProd.ok) setProducts(await resProd.json());
@@ -134,9 +159,14 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
       if (resSrv.ok) setServices(await resSrv.json());
       if (resNews.ok) setNews(await resNews.json());
       if (resGal.ok) setGallery(await resGal.json());
+      if (resInq.status === 401 || resSub.status === 401 || resAdmins?.status === 401) {
+        await onLogout();
+        return;
+      }
       if (resInq.ok) setInquiries(await resInq.json());
       if (resSub.ok) setSubscribers(await resSub.json());
       if (resSet.ok) setSettings(await resSet.json());
+      if (resAdmins?.ok) setAdminUsers(await resAdmins.json());
 
     } catch (err) {
       console.error('Error loading collections:', err);
@@ -147,10 +177,10 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
   };
 
   useEffect(() => {
-    if (token) {
+    if (currentUser) {
       fetchData();
     }
-  }, [token, activeTab]);
+  }, [currentUser, activeTab]);
 
   const showFeedback = (type: 'success' | 'error', msg: string) => {
     setFeedback({ type, msg });
@@ -170,11 +200,11 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, remember_me: rememberMe })
       });
       const data = await res.json();
       if (res.ok) {
-        onLoginSuccess(data.token, data.user);
+        onLoginSuccess(data.user);
       } else {
         setLoginError(data.error || 'Authentication rejected.');
       }
@@ -187,7 +217,7 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
 
   // Delete Action Handler
   const handleDelete = async (tab: TabType, id: string) => {
-    if (!token) return;
+    if (!currentUser) return;
     if (!confirm('Are you absolutely sure you want to delete this record?')) return;
 
     let endpoint = '';
@@ -204,11 +234,12 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
     try {
       const res = await fetch(endpoint, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: csrfHeaders(false)
       });
       if (res.ok) {
         showFeedback('success', 'Record removed successfully.');
-        fetchData();
+        void fetchData();
+        void onPublicDataUpdate?.();
       } else {
         showFeedback('error', 'Unable to remove record.');
       }
@@ -219,14 +250,11 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
 
   // Inquiry status update
   const handleInquiryStatusChange = async (id: string, newStatus: string) => {
-    if (!token) return;
+    if (!currentUser) return;
     try {
       const res = await fetch(`/api/inquiries/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: csrfHeaders(),
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
@@ -260,17 +288,15 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
     try {
       const res = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: csrfHeaders(),
         body: JSON.stringify(body)
       });
       if (res.ok) {
         showFeedback('success', `Category ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        fetchData();
+        void fetchData();
+        void onPublicDataUpdate?.();
       } else {
         const d = await res.json();
         showFeedback('error', d.error || 'Failed saving category.');
@@ -317,17 +343,15 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
     try {
       const res = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: csrfHeaders(),
         body: JSON.stringify(body)
       });
       if (res.ok) {
         showFeedback('success', `Product ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        fetchData();
+        void fetchData();
+        void onPublicDataUpdate?.();
       } else {
         const d = await res.json();
         showFeedback('error', d.error || 'Failed saving product.');
@@ -360,17 +384,15 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
     try {
       const res = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: csrfHeaders(),
         body: JSON.stringify(body)
       });
       if (res.ok) {
         showFeedback('success', `Service ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        fetchData();
+        void fetchData();
+        void onPublicDataUpdate?.();
       } else {
         const d = await res.json();
         showFeedback('error', d.error || 'Failed saving service.');
@@ -406,17 +428,15 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
     try {
       const res = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: csrfHeaders(),
         body: JSON.stringify(body)
       });
       if (res.ok) {
         showFeedback('success', `Article ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        fetchData();
+        void fetchData();
+        void onPublicDataUpdate?.();
       } else {
         const d = await res.json();
         showFeedback('error', d.error || 'Failed saving article.');
@@ -447,17 +467,15 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
     try {
       const res = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: csrfHeaders(),
         body: JSON.stringify(body)
       });
       if (res.ok) {
         showFeedback('success', `Media item ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        fetchData();
+        void fetchData();
+        void onPublicDataUpdate?.();
       } else {
         const d = await res.json();
         showFeedback('error', d.error || 'Failed saving media.');
@@ -472,18 +490,13 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: csrfHeaders(),
         body: JSON.stringify({ key, value_en: valEn, value_am: valAm })
       });
       if (res.ok) {
         showFeedback('success', `Setting key "${key}" saved.`);
-        fetchData();
-        if (onSettingsUpdate) {
-          onSettingsUpdate();
-        }
+        void fetchData();
+        void onPublicDataUpdate?.();
       } else {
         showFeedback('error', 'Setting update rejected.');
       }
@@ -492,8 +505,182 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
     }
   };
 
+  const adminHeaders = csrfHeaders();
+
+  const responseError = async (res: Response, fallback: string) => {
+    try {
+      const data = await res.json();
+      return data.error || fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const handleCreateAdmin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (newAdmin.password.length < 8) {
+      showFeedback('error', 'Password must be at least 8 characters.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST', headers: adminHeaders, body: JSON.stringify(newAdmin),
+      });
+      if (!res.ok) return showFeedback('error', await responseError(res, 'Unable to create admin user.'));
+      setNewAdmin({ username: '', email: '', name: '', role: 'Admin', password: '' });
+      showFeedback('success', 'Admin user created successfully.');
+      void fetchData();
+    } catch {
+      showFeedback('error', 'Server error creating admin user.');
+    }
+  };
+
+  const handleUpdateAdmin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingAdmin) return;
+    try {
+      const res = await fetch(`/api/admin/users/${editingAdmin.id}`, {
+        method: 'PUT', headers: adminHeaders,
+        body: JSON.stringify({ email: editingAdmin.email, name: editingAdmin.name, role: editingAdmin.role }),
+      });
+      if (!res.ok) return showFeedback('error', await responseError(res, 'Unable to update admin user.'));
+      setEditingAdmin(null);
+      showFeedback('success', 'Admin user updated successfully.');
+      void fetchData();
+    } catch {
+      showFeedback('error', 'Server error updating admin user.');
+    }
+  };
+
+  const handleResetAdminPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!resetAdmin) return;
+    if (resetPassword.length < 8) {
+      showFeedback('error', 'Password must be at least 8 characters.');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/users/${resetAdmin.id}/password`, {
+        method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ password: resetPassword }),
+      });
+      if (!res.ok) return showFeedback('error', await responseError(res, 'Unable to reset password.'));
+      setResetAdmin(null);
+      setResetPassword('');
+      showFeedback('success', 'Password reset successfully.');
+    } catch {
+      showFeedback('error', 'Server error resetting password.');
+    }
+  };
+
+  const handleDeleteAdmin = async (admin: AdminUser) => {
+    if (!window.confirm(`Delete admin user "${admin.username}"?`)) return;
+    try {
+      const res = await fetch(`/api/admin/users/${admin.id}`, { method: 'DELETE', headers: adminHeaders });
+      if (!res.ok) return showFeedback('error', await responseError(res, 'Unable to delete admin user.'));
+      showFeedback('success', 'Admin user deleted.');
+      void fetchData();
+    } catch {
+      showFeedback('error', 'Server error deleting admin user.');
+    }
+  };
+
+  const handleChangeMyPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (myPassword.next.length < 8) {
+      showFeedback('error', 'New password must be at least 8 characters.');
+      return;
+    }
+    if (myPassword.next !== myPassword.confirm) {
+      showFeedback('error', 'New password confirmation does not match.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/me/password', {
+        method: 'PATCH', headers: adminHeaders,
+        body: JSON.stringify({ current_password: myPassword.current, new_password: myPassword.next }),
+      });
+      if (!res.ok) return showFeedback('error', await responseError(res, 'Unable to change password.'));
+      setMyPassword({ current: '', next: '', confirm: '' });
+      await onLogout();
+    } catch {
+      showFeedback('error', 'Server error changing password.');
+    }
+  };
+
+  const handleConfirmRecentPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/auth/confirm-password', {
+        method: 'POST', headers: csrfHeaders(), body: JSON.stringify({ password: recentPassword }),
+      });
+      if (!res.ok) return showFeedback('error', await responseError(res, 'Password confirmation failed.'));
+      setRecentPassword('');
+      showFeedback('success', 'Password confirmed for sensitive admin actions.');
+    } catch {
+      showFeedback('error', 'Server error confirming password.');
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setRecoveryMessage('');
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recoveryEmail }),
+      });
+      const data = await res.json();
+      setRecoveryMessage(data.message || 'If an eligible account exists, a reset link has been sent.');
+    } catch {
+      setRecoveryMessage('If an eligible account exists, a reset link has been sent.');
+    }
+  };
+
+  const handlePublicPasswordReset = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (resetForm.password.length < 8 || resetForm.password !== resetForm.confirm) {
+      setResetMessage('Passwords must match and contain at least 8 characters.');
+      return;
+    }
+    const token = new URLSearchParams(window.location.search).get('token') || '';
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password: resetForm.password, confirm_password: resetForm.confirm }),
+      });
+      const data = await res.json();
+      if (!res.ok) return setResetMessage(data.error || 'Reset link is invalid or expired.');
+      setResetForm({ password: '', confirm: '' });
+      setResetMessage(data.message);
+      window.history.replaceState({}, '', '/');
+    } catch {
+      setResetMessage('Unable to reset the password right now.');
+    }
+  };
+
+  const isResetRoute = window.location.pathname === '/admin/reset-password';
+
+  if (isResetRoute) {
+    return (
+      <div className="min-h-screen bg-[#F8F1E7] flex items-center justify-center p-6 font-sans">
+        <form onSubmit={handlePublicPasswordReset} className="w-full max-w-md bg-[#2D2A26] p-8 text-[#F8F1E7] space-y-5">
+          <div className="flex items-center gap-3"><Key className="h-5 w-5 text-[#D08A44]" /><h2 className="font-serif text-2xl font-bold">Reset Super Admin Password</h2></div>
+          <p className="text-xs text-[#F8F1E7]/65">Choose a new password. Reset links expire after 20 minutes and can only be used once.</p>
+          <input type="password" autoComplete="new-password" required minLength={8} placeholder="New password" value={resetForm.password} onChange={e => setResetForm({ ...resetForm, password: e.target.value })} className="w-full bg-transparent border border-[#F8F1E7]/20 px-4 py-3 text-sm focus:outline-none focus:border-[#7E4015]" />
+          <input type="password" autoComplete="new-password" required minLength={8} placeholder="Confirm new password" value={resetForm.confirm} onChange={e => setResetForm({ ...resetForm, confirm: e.target.value })} className="w-full bg-transparent border border-[#F8F1E7]/20 px-4 py-3 text-sm focus:outline-none focus:border-[#7E4015]" />
+          {resetMessage && <div className="text-xs bg-black/20 p-3">{resetMessage}</div>}
+          <button type="submit" className="w-full bg-[#7E4015] py-3 text-xs uppercase tracking-widest font-bold">Reset Password</button>
+        </form>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return <div className="min-h-screen bg-[#F8F1E7] flex items-center justify-center text-[#7E4015] font-semibold">Checking secure session...</div>;
+  }
+
   // Auth Redirect/Gate
-  if (!token) {
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-[#F8F1E7] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans" id="admin-login-screen">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -541,6 +728,16 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                 />
               </div>
 
+              <div className="flex items-center justify-between gap-4 text-[11px]">
+                <label className="flex items-center gap-2 text-[#F8F1E7]/70 cursor-pointer">
+                  <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="accent-[#7E4015]" />
+                  Remember me for up to 7 days
+                </label>
+                <button type="button" onClick={() => setShowForgotPassword(!showForgotPassword)} className="text-[#D08A44] hover:text-[#F8F1E7]">
+                  Forgot password?
+                </button>
+              </div>
+
               {loginError && (
                 <div className="bg-red-950/40 border border-red-900/30 text-red-300 text-[11px] font-mono rounded-none p-3">
                   {loginError}
@@ -558,12 +755,16 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                 </button>
               </div>
             </form>
-            
-            <div className="mt-6 pt-6 border-t border-[#F8F1E7]/10 text-center">
-              <span className="text-[10px] text-[#F8F1E7]/40 font-mono">
-                Development credentials: admin / admin123
-              </span>
-            </div>
+            {showForgotPassword && (
+              <form onSubmit={handleForgotPassword} className="mt-6 pt-6 border-t border-[#F8F1E7]/10 space-y-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-[#F8F1E7]/75 uppercase tracking-widest">Super Admin Email</label>
+                  <input type="email" required value={recoveryEmail} onChange={e => setRecoveryEmail(e.target.value)} placeholder="admin@example.com" className="mt-1.5 block w-full bg-[#2D2A26] border border-[#F8F1E7]/15 focus:border-[#7E4015] px-4 py-3 text-[#F8F1E7] text-xs focus:outline-none" />
+                </div>
+                <button type="submit" className="w-full py-3 bg-[#F8F1E7]/10 text-[#F8F1E7] text-xs font-bold uppercase tracking-wider hover:bg-[#F8F1E7]/15">Send Reset Link</button>
+                {recoveryMessage && <div className="text-[11px] text-[#F8F1E7]/70 bg-black/20 p-3">{recoveryMessage}</div>}
+              </form>
+            )}
           </div>
         </div>
       </div>
@@ -599,6 +800,7 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
             { id: 'inquiries', label: 'Inquiries Received', count: inquiries.filter(i=>i.status==='new').length, icon: Mail },
             { id: 'subscribers', label: 'Newsletter list', count: subscribers.length, icon: Users },
             { id: 'settings', label: 'Site Settings', icon: Settings },
+            { id: 'admin-users', label: 'Admin Users', count: canManageAdmins ? adminUsers.length : undefined, icon: ShieldCheck },
           ].map((item) => {
             const Icon = item.icon;
             const isSel = activeTab === item.id;
@@ -632,8 +834,8 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
         </nav>
 
         <div className="p-6 border-t border-[#7E4015]/20 hidden lg:block text-xs text-[#F8F1E7]/40 font-mono">
-          <p>User: Superadmin</p>
-          <p className="mt-1">Environment: Cloud Run</p>
+          <p>User: {currentUser?.username || 'Admin'}</p>
+          <p className="mt-1">Role: {currentUser?.role || 'Admin'}</p>
           <button 
             onClick={onLogout}
             className="mt-4 w-full py-2 bg-red-950/20 text-red-400 border border-red-900/30 rounded-lg text-center hover:bg-red-950/40 font-semibold"
@@ -650,10 +852,12 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-serif font-bold text-[#2D2A26] capitalize">
-              {activeTab} Management
+              {activeTab === 'admin-users' ? 'Admin Users & Passwords' : `${activeTab} Management`}
             </h1>
             <p className="text-sm text-[#2D2A26]/70 mt-1">
-              Add, update, or remove live bilingual content on the website.
+              {activeTab === 'admin-users'
+                ? 'Manage authorized CMS accounts and your own password.'
+                : 'Add, update, or remove live bilingual content on the website.'}
             </p>
           </div>
 
@@ -771,7 +975,7 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
 
                 <div>
                   <label className="block text-xs font-bold text-[#2D2A26]/80 uppercase">Image</label>
-                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} token={token} />
+                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} />
                 </div>
 
                 <div className="md:col-span-2">
@@ -1221,7 +1425,7 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-[#2D2A26]/80">Service Image</label>
-                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} token={token} />
+                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} />
                 </div>
               </div>
               <div className="flex gap-4">
@@ -1301,7 +1505,7 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#2D2A26]/80">Article Image</label>
-                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} token={token} />
+                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#2D2A26]/80">Title (English)</label>
@@ -1482,7 +1686,7 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#2D2A26]/80">Gallery Image</label>
-                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} token={token} />
+                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1736,6 +1940,125 @@ export default function AdminPanel({ token, onLoginSuccess, onLogout, onSettings
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* ----------------- TAB: ADMIN USERS & PASSWORDS ----------------- */}
+        {activeTab === 'admin-users' && !loading && (
+          <div className="space-y-6 max-w-5xl" id="cms-admin-users-view">
+            <form onSubmit={handleChangeMyPassword} className="bg-white p-6 rounded-2xl border border-[#7E4015]/10 shadow-sm space-y-5">
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                <Key className="h-5 w-5 text-[#7E4015]" />
+                <div>
+                  <h3 className="font-serif font-bold text-[#2D2A26]">Change My Password</h3>
+                  <p className="text-xs text-gray-500">Enter your current password before choosing a new one.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="password" autoComplete="current-password" required placeholder="Current password" value={myPassword.current} onChange={e => setMyPassword({ ...myPassword, current: e.target.value })} className="w-full border border-gray-200 px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-[#7E4015]" />
+                <input type="password" autoComplete="new-password" required minLength={8} placeholder="New password (8+ characters)" value={myPassword.next} onChange={e => setMyPassword({ ...myPassword, next: e.target.value })} className="w-full border border-gray-200 px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-[#7E4015]" />
+                <input type="password" autoComplete="new-password" required minLength={8} placeholder="Confirm new password" value={myPassword.confirm} onChange={e => setMyPassword({ ...myPassword, confirm: e.target.value })} className="w-full border border-gray-200 px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-[#7E4015]" />
+              </div>
+              <button type="submit" className="px-5 py-2.5 bg-[#7E4015] text-white rounded-lg text-sm font-semibold hover:bg-[#653310]">Change My Password</button>
+            </form>
+
+            {canManageAdmins ? (
+              <>
+                <form onSubmit={handleConfirmRecentPassword} className="bg-[#2D2A26] p-6 rounded-2xl text-[#F8F1E7] space-y-3">
+                  <div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-[#D08A44]" /><div><h3 className="font-serif font-bold">Confirm Sensitive Actions</h3><p className="text-xs text-[#F8F1E7]/60">Confirm your password before changing roles, deleting users, or resetting another password. Confirmation lasts 10 minutes.</p></div></div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input type="password" autoComplete="current-password" required placeholder="Your current password" value={recentPassword} onChange={e => setRecentPassword(e.target.value)} className="flex-1 bg-transparent border border-[#F8F1E7]/20 px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-[#7E4015]" />
+                    <button type="submit" className="px-5 py-2.5 bg-[#7E4015] text-white rounded-lg text-sm font-semibold">Confirm Password</button>
+                  </div>
+                </form>
+
+                <form onSubmit={handleCreateAdmin} className="bg-white p-6 rounded-2xl border border-[#7E4015]/10 shadow-sm space-y-5">
+                  <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <Plus className="h-5 w-5 text-[#7E4015]" />
+                    <div>
+                      <h3 className="font-serif font-bold text-[#2D2A26]">Add Admin User</h3>
+                      <p className="text-xs text-gray-500">Create a separate account for each person who manages the CMS.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input required placeholder="Username" value={newAdmin.username} onChange={e => setNewAdmin({ ...newAdmin, username: e.target.value })} className="border border-gray-200 px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-[#7E4015]" />
+                    <input type="email" required placeholder="Email address" value={newAdmin.email} onChange={e => setNewAdmin({ ...newAdmin, email: e.target.value })} className="border border-gray-200 px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-[#7E4015]" />
+                    <input required placeholder="Full name" value={newAdmin.name} onChange={e => setNewAdmin({ ...newAdmin, name: e.target.value })} className="border border-gray-200 px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-[#7E4015]" />
+                    <select required value={newAdmin.role} onChange={e => setNewAdmin({ ...newAdmin, role: e.target.value })} className="border border-gray-200 px-4 py-3 rounded-lg text-sm bg-white focus:outline-none focus:border-[#7E4015]">
+                      <option value="Admin">Admin</option>
+                      <option value="Superadmin">Super Admin</option>
+                    </select>
+                    <input type="password" autoComplete="new-password" required minLength={8} placeholder="Temporary password (8+ characters)" value={newAdmin.password} onChange={e => setNewAdmin({ ...newAdmin, password: e.target.value })} className="border border-gray-200 px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-[#7E4015]" />
+                  </div>
+                  <button type="submit" className="px-5 py-2.5 bg-[#2D2A26] text-white rounded-lg text-sm font-semibold hover:bg-black">Create Admin User</button>
+                </form>
+
+                {editingAdmin && (
+                  <form onSubmit={handleUpdateAdmin} className="bg-amber-50 p-6 rounded-2xl border border-amber-200 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-[#2D2A26]">Edit {editingAdmin.username}</h3>
+                      <button type="button" onClick={() => setEditingAdmin(null)} className="text-gray-500 hover:text-gray-900"><X className="h-5 w-5" /></button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <input type="email" required value={editingAdmin.email || ''} onChange={e => setEditingAdmin({ ...editingAdmin, email: e.target.value })} className="border border-amber-200 px-4 py-3 rounded-lg text-sm" placeholder="Email address" />
+                      <input required value={editingAdmin.name} onChange={e => setEditingAdmin({ ...editingAdmin, name: e.target.value })} className="border border-amber-200 px-4 py-3 rounded-lg text-sm" />
+                      <select required value={editingAdmin.role} onChange={e => setEditingAdmin({ ...editingAdmin, role: e.target.value })} className="border border-amber-200 px-4 py-3 rounded-lg text-sm bg-white">
+                        <option value="Admin">Admin</option>
+                        <option value="Superadmin">Super Admin</option>
+                      </select>
+                    </div>
+                    <button type="submit" className="px-5 py-2.5 bg-[#7E4015] text-white rounded-lg text-sm font-semibold">Save Admin Details</button>
+                  </form>
+                )}
+
+                {resetAdmin && (
+                  <form onSubmit={handleResetAdminPassword} className="bg-blue-50 p-6 rounded-2xl border border-blue-200 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-[#2D2A26]">Reset password for {resetAdmin.username}</h3>
+                        <p className="text-xs text-gray-500">The new password is saved securely and will not be displayed afterward.</p>
+                      </div>
+                      <button type="button" onClick={() => { setResetAdmin(null); setResetPassword(''); }} className="text-gray-500 hover:text-gray-900"><X className="h-5 w-5" /></button>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input type="password" autoComplete="new-password" required minLength={8} placeholder="New password (8+ characters)" value={resetPassword} onChange={e => setResetPassword(e.target.value)} className="flex-1 border border-blue-200 px-4 py-3 rounded-lg text-sm" />
+                      <button type="submit" className="px-5 py-2.5 bg-blue-700 text-white rounded-lg text-sm font-semibold">Save New Password</button>
+                    </div>
+                  </form>
+                )}
+
+                <div className="bg-white rounded-2xl border border-[#7E4015]/10 shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-gray-100">
+                    <h3 className="font-serif font-bold text-[#2D2A26]">Authorized Admin Users</h3>
+                    <p className="text-xs text-gray-500">Only Super Admins can edit, reset, or remove other accounts.</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-[#2D2A26] text-[#F8F1E7] text-xs uppercase tracking-wider">
+                        <tr><th className="px-6 py-4">User</th><th className="px-6 py-4">Role</th><th className="px-6 py-4 text-right">Actions</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 text-sm">
+                        {adminUsers.map(admin => (
+                          <tr key={admin.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4"><div className="font-semibold text-[#2D2A26]">{admin.name}</div><div className="text-xs text-gray-500">@{admin.username}{admin.id === currentUser?.id || admin.username === currentUser?.username ? ' · You' : ''}</div><div className="text-xs text-gray-400">{admin.email || 'Email not configured'}</div></td>
+                            <td className="px-6 py-4"><span className="inline-flex px-2.5 py-1 rounded-full bg-[#7E4015]/10 text-[#7E4015] text-xs font-bold">{admin.role}</span></td>
+                            <td className="px-6 py-4"><div className="flex justify-end gap-2">
+                              <button type="button" onClick={() => setEditingAdmin({ ...admin })} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" title="Edit admin"><Edit2 className="h-4 w-4" /></button>
+                              <button type="button" onClick={() => { setResetAdmin(admin); setResetPassword(''); }} className="p-2 text-blue-700 hover:bg-blue-50 rounded-lg" title="Reset password"><Key className="h-4 w-4" /></button>
+                              <button type="button" disabled={admin.id === currentUser?.id || admin.username === currentUser?.username} onClick={() => void handleDeleteAdmin(admin)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed" title="Delete admin"><Trash2 className="h-4 w-4" /></button>
+                            </div></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="bg-white p-6 rounded-2xl border border-[#7E4015]/10 text-sm text-gray-600">
+                Admin user creation, editing, deletion, and password resets require Super Admin permission.
+              </div>
+            )}
           </div>
         )}
 

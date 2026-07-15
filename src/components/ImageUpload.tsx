@@ -1,14 +1,14 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
+import { csrfHeaders } from '../auth-client.ts';
 
 interface Props {
   name?: string; // form field name to populate (defaults to image_url)
   initialUrl?: string | null;
-  token?: string | null; // admin auth token for upload endpoint
   maxSizeMB?: number;
   onChange?: (url: string) => void;
 }
 
-export default function ImageUpload({ name = 'image_url', initialUrl = null, token = null, maxSizeMB = 5, onChange }: Props) {
+export default function ImageUpload({ name = 'image_url', initialUrl = null, maxSizeMB = 5, onChange }: Props) {
   const [preview, setPreview] = useState<string | null>(initialUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,12 +44,9 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, tok
       setUploading(true);
       try {
         const payload = { filename: file.name, data: dataUrl };
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
         const res = await fetch('/api/admin/upload', {
           method: 'POST',
-          headers,
+          headers: csrfHeaders(),
           body: JSON.stringify(payload)
         });
         const json = await res.json();
