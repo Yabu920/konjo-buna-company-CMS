@@ -1,28 +1,24 @@
-import { db as jsonDb } from './db.js';
+import { resolveDataSourceConfiguration } from './config.js';
+import type { DBManager } from './db.js';
 import type { PrismaDBManager } from './db-prisma.js';
 
-const requestedSource = process.env.DATA_SOURCE?.trim().toLowerCase();
+const configuration = resolveDataSourceConfiguration(process.env);
+export const activeDataSource = configuration.dataSource;
 
-if (requestedSource && requestedSource !== 'json' && requestedSource !== 'mysql') {
-  console.warn(`Unknown DATA_SOURCE="${requestedSource}"; falling back to JSON for safety.`);
-}
-
-export const activeDataSource: 'json' | 'mysql' = requestedSource === 'mysql' ? 'mysql' : 'json';
-
-type Repository = typeof jsonDb | PrismaDBManager;
+type Repository = DBManager | PrismaDBManager;
 let repositoryPromise: Promise<Repository> | undefined;
 
 const getRepository = (): Promise<Repository> => {
   if (!repositoryPromise) {
     repositoryPromise = activeDataSource === 'mysql'
       ? import('./db-prisma.js').then(({ dbPrisma }) => dbPrisma)
-      : Promise.resolve(jsonDb);
+      : import('./db.js').then(({ db: jsonDb }) => jsonDb);
   }
   return repositoryPromise;
 };
 
-// Every adapter method is asynchronous. This lets Express await both the existing
-// synchronous JSON methods and the future Prisma methods through one interface.
+// Every adapter method is asynchronous so Express can use one interface for both
+// the explicitly selected development JSON repository and production MySQL.
 export const db = new Proxy({} as PrismaDBManager, {
   get(_target, property: string) {
     return async (...args: unknown[]) => {
@@ -34,4 +30,4 @@ export const db = new Proxy({} as PrismaDBManager, {
   },
 });
 
-console.log(`Konjo Coffee data source: ${activeDataSource === 'mysql' ? 'MySQL (Prisma)' : 'JSON (database.json)'}`);
+console.log(`Konjo Coffee data source: ${activeDataSource === 'mysql' ? 'MySQL (Prisma)' : 'JSON (explicit development mode)'}`);

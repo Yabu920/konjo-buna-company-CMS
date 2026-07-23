@@ -1,7 +1,8 @@
 # Prisma / MySQL foundation
 
-This directory defines the future MySQL schema. The running application still uses
-`database.json` through `server/db.ts`; Prisma is not imported by the server yet.
+This directory defines the active production MySQL schema. Production selects the
+Prisma repository and fails startup unless `DATA_SOURCE=mysql` and a valid
+`DATABASE_URL` are configured. JSON remains explicit local-development mode only.
 
 ## Configure cPanel MySQL
 
@@ -17,11 +18,10 @@ This directory defines the future MySQL schema. The running application still us
 ## Prepare the schema
 
 - `npm run prisma:generate` generates the Prisma client.
-- `npm run prisma:migrate -- --name init` creates and applies the initial migration.
+- `npm run prisma:migrate:deploy` applies committed migrations in production.
 
-Always back up an existing database before applying a migration. The application
-continues to use `database.json`; running these commands does not switch the Express
-CRUD layer to MySQL.
+Always back up an existing database before applying a migration. The production
+Express CRUD layer uses MySQL when its required configuration passes startup checks.
 
 ## Validate and import database.json
 
@@ -52,9 +52,8 @@ The importer does not modify or delete `database.json`.
 `server/db-prisma.ts` repository implements asynchronous Prisma equivalents of the
 current JSON `DBManager` methods.
 
-The Prisma repository is prepared but is **not active**. `server.ts` still imports
-`server/db.ts`, so the running application continues to read and write
-`database.json`. The real route switch belongs to Step 4 after repository review.
+The repository selector in `server/db-adapter.ts` activates Prisma in MySQL mode.
+Production never falls back to the JSON repository.
 
 After migrating and importing a configured MySQL database, verify the repository's
 read operations with:
@@ -64,13 +63,14 @@ read operations with:
 This verification command reads categories, products, and settings without writing
 data.
 
-## Step 4 data-source switch
+## Data-source selection
 
 The Express API now selects its repository through `server/db-adapter.ts`:
 
-- `DATA_SOURCE=json` uses `server/db.ts` and `database.json` (safe default).
+- `DATA_SOURCE=json` uses `server/db.ts` and ignored `database.local.json` only in
+  non-production development.
 - `DATA_SOURCE=mysql` uses `server/db-prisma.ts` and the configured MySQL database.
-- A missing or unrecognized value falls back to JSON.
+- Missing or unrecognized values fail startup. Production also rejects JSON mode.
 
 Only switch to MySQL after the schema migration, JSON import, and repository
 verification have succeeded. Restart the Node application after changing the value.

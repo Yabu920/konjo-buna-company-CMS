@@ -64,6 +64,7 @@ function SettingFieldRow({ fieldKey, label, initialValEn, initialValAm, onSave }
           <input
             type="text"
             value={valEn}
+            aria-label={`${label} in English`}
             onChange={(e) => setValEn(e.target.value)}
             className="w-full bg-white border border-[#2D2A26]/10 rounded-none px-3 py-2 text-xs focus:outline-none focus:border-[#7E4015] font-sans"
           />
@@ -73,6 +74,7 @@ function SettingFieldRow({ fieldKey, label, initialValEn, initialValAm, onSave }
           <input
             type="text"
             value={valAm}
+            aria-label={`${label} in Amharic`}
             onChange={(e) => setValAm(e.target.value)}
             className="w-full bg-white border border-[#2D2A26]/10 rounded-none px-3 py-2 text-xs focus:outline-none focus:border-[#7E4015] font-sans"
           />
@@ -181,6 +183,25 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
       fetchData();
     }
   }, [currentUser, activeTab]);
+
+  useEffect(() => {
+    document.querySelectorAll<HTMLFormElement>('form').forEach((form, formIndex) => {
+      const controls = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input:not([type="hidden"]), select, textarea'));
+      form.querySelectorAll<HTMLLabelElement>('label:not([for])').forEach((label, labelIndex) => {
+        const control = label.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')
+          ?? label.parentElement?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input:not([type="hidden"]), select, textarea');
+        if (!control) return;
+        if (!control.id) control.id = `admin-field-${formIndex}-${labelIndex}`;
+        label.htmlFor = control.id;
+      });
+      controls.forEach((control, controlIndex) => {
+        const hasLabel = control.id && Array.from(form.querySelectorAll<HTMLLabelElement>('label[for]')).some(label => label.htmlFor === control.id);
+        if (!hasLabel && !control.getAttribute('aria-label') && !control.getAttribute('aria-labelledby')) {
+          control.setAttribute('aria-label', control.getAttribute('placeholder') || control.getAttribute('name') || `Admin form field ${controlIndex + 1}`);
+        }
+      });
+    });
+  }, [authLoading, currentUser, activeTab, isFormOpen, currentEditItem, editingAdmin, resetAdmin, showForgotPassword]);
 
   const showFeedback = (type: 'success' | 'error', msg: string) => {
     setFeedback({ type, msg });
@@ -664,11 +685,11 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
     return (
       <div className="min-h-screen bg-[#F8F1E7] flex items-center justify-center p-6 font-sans">
         <form onSubmit={handlePublicPasswordReset} className="w-full max-w-md bg-[#2D2A26] p-8 text-[#F8F1E7] space-y-5">
-          <div className="flex items-center gap-3"><Key className="h-5 w-5 text-[#D08A44]" /><h2 className="font-serif text-2xl font-bold">Reset Super Admin Password</h2></div>
+          <div className="flex items-center gap-3"><Key className="h-5 w-5 text-[#D08A44]" /><h1 className="font-serif text-2xl font-bold">Reset Super Admin Password</h1></div>
           <p className="text-xs text-[#F8F1E7]/65">Choose a new password. Reset links expire after 20 minutes and can only be used once.</p>
           <input type="password" autoComplete="new-password" required minLength={8} placeholder="New password" value={resetForm.password} onChange={e => setResetForm({ ...resetForm, password: e.target.value })} className="w-full bg-transparent border border-[#F8F1E7]/20 px-4 py-3 text-sm focus:outline-none focus:border-[#7E4015]" />
           <input type="password" autoComplete="new-password" required minLength={8} placeholder="Confirm new password" value={resetForm.confirm} onChange={e => setResetForm({ ...resetForm, confirm: e.target.value })} className="w-full bg-transparent border border-[#F8F1E7]/20 px-4 py-3 text-sm focus:outline-none focus:border-[#7E4015]" />
-          {resetMessage && <div className="text-xs bg-black/20 p-3">{resetMessage}</div>}
+          {resetMessage && <div role="status" className="text-xs bg-black/20 p-3">{resetMessage}</div>}
           <button type="submit" className="w-full bg-[#7E4015] py-3 text-xs uppercase tracking-widest font-bold">Reset Password</button>
         </form>
       </div>
@@ -687,9 +708,9 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
           <div className="bg-[#2D2A26] p-4 rounded-none w-14 h-14 mx-auto flex items-center justify-center border border-[#2D2A26]/10 shadow-none">
             <Lock className="h-5 w-5 text-[#F8F1E7]" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-serif font-bold text-[#2D2A26] tracking-tight">
+          <h1 className="mt-6 text-center text-3xl font-serif font-bold text-[#2D2A26] tracking-tight">
             Konjo Buna CMS Admin
-          </h2>
+          </h1>
           <p className="mt-2 text-center text-xs uppercase tracking-widest text-[#2D2A26]/75">
             Export & processing administration portal
           </p>
@@ -733,13 +754,13 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                   <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="accent-[#7E4015]" />
                   Remember me for up to 7 days
                 </label>
-                <button type="button" onClick={() => setShowForgotPassword(!showForgotPassword)} className="text-[#D08A44] hover:text-[#F8F1E7]">
+                <button type="button" onClick={() => setShowForgotPassword(!showForgotPassword)} aria-expanded={showForgotPassword} className="text-[#D08A44] hover:text-[#F8F1E7]">
                   Forgot password?
                 </button>
               </div>
 
               {loginError && (
-                <div className="bg-red-950/40 border border-red-900/30 text-red-300 text-[11px] font-mono rounded-none p-3">
+                <div role="alert" className="bg-red-950/40 border border-red-900/30 text-red-300 text-[11px] font-mono rounded-none p-3">
                   {loginError}
                 </div>
               )}
@@ -762,7 +783,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                   <input type="email" required value={recoveryEmail} onChange={e => setRecoveryEmail(e.target.value)} placeholder="admin@example.com" className="mt-1.5 block w-full bg-[#2D2A26] border border-[#F8F1E7]/15 focus:border-[#7E4015] px-4 py-3 text-[#F8F1E7] text-xs focus:outline-none" />
                 </div>
                 <button type="submit" className="w-full py-3 bg-[#F8F1E7]/10 text-[#F8F1E7] text-xs font-bold uppercase tracking-wider hover:bg-[#F8F1E7]/15">Send Reset Link</button>
-                {recoveryMessage && <div className="text-[11px] text-[#F8F1E7]/70 bg-black/20 p-3">{recoveryMessage}</div>}
+                {recoveryMessage && <div role="status" className="text-[11px] text-[#F8F1E7]/70 bg-black/20 p-3">{recoveryMessage}</div>}
               </form>
             )}
           </div>
@@ -879,7 +900,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
 
         {/* Global Feedback Banner */}
         {feedback && (
-          <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 shadow-md animate-fade-in ${
+          <div role={feedback.type === 'error' ? 'alert' : 'status'} className={`mb-6 p-4 rounded-xl border flex items-center gap-3 shadow-md animate-fade-in ${
             feedback.type === 'success' 
               ? 'bg-green-50 border-green-200 text-green-800' 
               : 'bg-red-50 border-red-200 text-red-800'
@@ -1184,7 +1205,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                     return (
                       <tr key={p.id} className="hover:bg-gray-50/50">
                         <td className="px-6 py-4">
-                          <img src={p.image_url} className="w-12 h-12 object-cover rounded-lg border border-[#7E4015]/10" alt="" />
+                          <img src={p.image_url} width="48" height="48" loading="lazy" className="w-12 h-12 object-cover rounded-lg border border-[#7E4015]/10" alt={`${p.title_en} thumbnail`} />
                         </td>
                         <td className="px-6 py-4 font-semibold text-gray-900">
                           <div>{p.title_en}</div>
@@ -1455,7 +1476,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                         {s.slug}
                       </td>
                       <td className="px-6 py-4">
-                        <img src={s.image_url} className="w-16 h-10 object-cover rounded" alt="" />
+                        <img src={s.image_url} width="64" height="40" loading="lazy" className="w-16 h-10 object-cover rounded" alt={`${s.title_en} thumbnail`} />
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -1737,7 +1758,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
               {gallery.map((g) => (
                 <div key={g.id} className="bg-white border border-[#7E4015]/10 rounded-2xl overflow-hidden shadow-md flex flex-col">
                   <div className="relative h-44 bg-gray-100">
-                    <img src={g.image_url} className="w-full h-full object-cover" alt="" />
+                    <img src={g.image_url} width="500" height="500" loading="lazy" className="w-full h-full object-cover" alt={g.title_en} />
                     <span className="absolute top-2 left-2 bg-black/75 backdrop-blur-md text-white text-[10px] px-2.5 py-1 rounded-lg border border-white/10">{g.category_en}</span>
                   </div>
                   <div className="p-4 flex-1 flex flex-col justify-between">

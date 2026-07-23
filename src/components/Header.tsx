@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Coffee, Search, Menu, X, Globe } from 'lucide-react';
+import { Search, Menu, X, Globe } from 'lucide-react';
 import logoImage from '../../images/logo5.png';
 import { ViewType } from '../types.js';
 import { translations } from '../translations.js';
+import { pathForView } from '../routing.ts';
 
 interface HeaderProps {
   currentView: ViewType;
@@ -67,36 +68,41 @@ export default function Header({
         <div className="flex items-center justify-between h-24">
           
           {/* Logo & Brand */}
-          <div 
-            onClick={() => handleNav('home')} 
-            className="flex items-center gap-3 cursor-pointer group"
+          <a
+            href="/"
+            onClick={(event) => { event.preventDefault(); handleNav('home'); }}
+            className="flex items-center gap-3 group min-h-11"
             id="header-brand-logo"
           >
             <div className="w-24 h-22 bg-[#7E4015] rounded-none flex items-center justify-center transition-transform duration-500 group-hover:scale-105 shadow-md">
               <img
                 src={logoImage}
+                width="96"
+                height="88"
                 alt="Konjo Buna logo"
                 className="w-full h-full rounded-none object-cover"
               />
             </div>
             <div>
-              <h1 className="font-serif text-2xl lg:mr-6 tracking-tight leading-none font-bold text-[#ffffff] group-hover:text-[#7E4015] transition-colors uppercase">
+              <span className="font-serif text-2xl lg:mr-6 tracking-tight leading-none font-bold text-white group-hover:text-[#2D2A26] transition-colors uppercase">
                 {siteTitle}
                 {/* <span className="font-sans text-[9px] font-bold tracking-[0.25em] text-[#F8F1E7] block mt-1">COFFEE EXPORT</span> */}
-              </h1>
+              </span>
             </div>
-          </div>
+          </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             {navItems.map((item) => {
-              const isActive = currentView === item.view;
+              const isActive = currentView === item.view || (item.view === 'products' && currentView === 'product-detail');
               return (
-                <button
+                <a
                   key={item.view}
                   id={`nav-link-${item.view}`}
-                  onClick={() => handleNav(item.view)}
-                  className={`py-1 text-xs font-semibold tracking-widest uppercase transition-all relative ${
+                  href={pathForView(item.view)}
+                  onClick={(event) => { event.preventDefault(); handleNav(item.view); }}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`min-h-11 inline-flex items-center py-1 text-xs font-semibold tracking-widest uppercase transition-all relative ${
                     isActive 
                       ? 'text-[#ffffff] font-bold border-b-4 border-[#2D2A26]' 
                       : 'text-[#ffffff] hover:text-[#2D2A26]'
@@ -106,7 +112,7 @@ export default function Header({
                   {isActive && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7E4015]"></span>
                   )}
-                </button>
+                </a>
               );
             })}
           </nav>
@@ -126,22 +132,26 @@ export default function Header({
                     onChange={(e) => onSearchChange(e.target.value)}
                     onKeyDown={handleSearchKeyPress}
                     placeholder={t.search_placeholder}
+                    aria-label={t.search_placeholder}
                     className="bg-transparent text-xs text-[#2D2A26] focus:outline-none w-full placeholder-[#2D2A26]/50"
                     autoFocus
                   />
                   <button 
+                    type="button"
                     onClick={() => setShowHeaderSearch(false)}
-                    className="text-[#2D2A26]/50 hover:text-[#2D2A26]"
+                    aria-label="Close search"
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center text-[#2D2A26]/60 hover:text-[#2D2A26]"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               ) : (
                 <button
+                  type="button"
                   id="search-toggle-btn"
                   onClick={() => setShowHeaderSearch(true)}
                   className="p-2 text-[#2D2A26]/70 hover:text-[#2D2A26] hover:bg-[#2D2A26]/5 rounded-full transition-all"
-                  title="Search Website"
+                  aria-label="Search website"
                 >
                   <Search className="h-5 w-5" />
                 </button>
@@ -151,8 +161,11 @@ export default function Header({
             {/* Language Selection preference toggle - Pill Styled */}
             <div className="flex items-center bg-[#2D2A26] text-[#F8F1E7] px-4 py-2 rounded-full shadow-md font-mono select-none">
               <button
+                type="button"
                 id="lang-btn-en"
                 onClick={() => onLanguageChange('en')}
+                aria-label="Display website in English"
+                aria-pressed={lang === 'en'}
                 className={`text-[10px] font-bold tracking-wider transition-all hover:text-white ${
                   lang === 'en' 
                     ? 'opacity-100 text-[#F8F1E7]' 
@@ -163,8 +176,11 @@ export default function Header({
               </button>
               <div className="w-px h-3 bg-[#F8F1E7]/30 mx-3"></div>
               <button
+                type="button"
                 id="lang-btn-am"
                 onClick={() => onLanguageChange('am')}
+                aria-label="Display website in Amharic"
+                aria-pressed={lang === 'am'}
                 className={`text-[10px] font-bold tracking-wider transition-all hover:text-white ${
                   lang === 'am' 
                     ? 'opacity-100 text-[#F8F1E7]' 
@@ -179,6 +195,7 @@ export default function Header({
             {isAdminLoggedIn ? (
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   id="admin-dashboard-btn"
                   onClick={() => handleNav('admin')}
                   className="px-4 py-2 text-[10px] font-bold tracking-wider uppercase border border-[#2D2A26] bg-[#2D2A26] text-[#F8F1E7] hover:bg-transparent hover:text-[#2D2A26] transition-all"
@@ -186,6 +203,7 @@ export default function Header({
                   CMS Panel
                 </button>
                 <button
+                  type="button"
                   id="admin-logout-btn"
                   onClick={onLogout}
                   className="px-2 py-1 text-[10px] font-bold tracking-wider uppercase text-red-600 hover:text-red-800 transition-all"
@@ -202,19 +220,25 @@ export default function Header({
             
             {/* Simple Small Lang Switcher */}
             <button
+              type="button"
               id="mobile-lang-toggle"
               onClick={() => onLanguageChange(lang === 'en' ? 'am' : 'en')}
-              className="p-2 border border-[#2D2A26]/10 bg-[#2D2A26]/5 rounded-none flex items-center gap-1.5 text-[#2D2A26] text-xs font-bold hover:bg-[#2D2A26]/10 transition-all"
+              aria-label={lang === 'en' ? 'Switch to Amharic' : 'Switch to English'}
+              className="min-h-11 min-w-11 p-2 border border-white/30 bg-white/10 rounded-none flex items-center gap-1.5 text-white text-xs font-bold hover:bg-white/20 transition-all"
             >
-              <Globe className="h-4 w-4 text-[#7E4015]" />
+              <Globe className="h-4 w-4" aria-hidden="true" />
               <span>{lang === 'en' ? 'አማ' : 'EN'}</span>
             </button>
 
             {/* Hamburger Toggle */}
             <button
+              type="button"
               id="mobile-menu-toggle"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 hover:bg-white/5 text-[#ffffff]"
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation-drawer"
+              className="min-h-11 min-w-11 p-2 hover:bg-white/10 text-white inline-flex items-center justify-center"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -237,6 +261,7 @@ export default function Header({
               onChange={(e) => onSearchChange(e.target.value)}
               onKeyDown={handleSearchKeyPress}
               placeholder={t.search_placeholder}
+              aria-label={t.search_placeholder}
               className="w-full bg-[#F8F1E7] border border-[#2D2A26]/20 rounded-none pl-10 pr-4 py-2 text-sm text-[#2D2A26] focus:outline-none placeholder-[#2D2A26]/50 focus:ring-1 focus:ring-[#7E4015]"
             />
           </div>
@@ -244,20 +269,22 @@ export default function Header({
           {/* Nav Items List */}
           <nav className="flex flex-col gap-1">
             {navItems.map((item) => {
-              const isActive = currentView === item.view;
+              const isActive = currentView === item.view || (item.view === 'products' && currentView === 'product-detail');
               return (
-                <button
+                <a
                   key={item.view}
                   id={`mobile-nav-${item.view}`}
-                  onClick={() => handleNav(item.view)}
-                  className={`w-full text-left px-4 py-2.5 text-xs font-bold tracking-widest uppercase transition-all ${
+                  href={pathForView(item.view)}
+                  onClick={(event) => { event.preventDefault(); handleNav(item.view); }}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`w-full min-h-11 flex items-center text-left px-4 py-2.5 text-xs font-bold tracking-widest uppercase transition-all ${
                     isActive 
                       ? 'bg-[#7E4015] text-[#F8F1E7] shadow-md' 
                       : 'text-[#2D2A26]/80 hover:bg-[#2D2A26]/5'
                   }`}
                 >
                   {item.label}
-                </button>
+                </a>
               );
             })}
           </nav>
@@ -266,6 +293,7 @@ export default function Header({
           {isAdminLoggedIn && (
             <div className="pt-4 border-t border-[#2D2A26]/10 flex flex-col gap-2">
               <button
+                type="button"
                 id="mobile-admin-dashboard"
                 onClick={() => handleNav('admin')}
                 className="w-full py-2.5 text-center text-xs font-bold tracking-widest uppercase border border-[#2D2A26] bg-[#2D2A26] text-[#F8F1E7] hover:bg-[#2D2A26] hover:text-[#2D2A26] transition-all"
@@ -273,6 +301,7 @@ export default function Header({
                 CMS Admin Dashboard
               </button>
               <button
+                type="button"
                 id="mobile-admin-logout"
                 onClick={onLogout}
                 className="w-full py-2.5 text-center text-xs font-bold tracking-widest uppercase text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-all"

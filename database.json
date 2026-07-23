@@ -1,13 +1,7 @@
 {
-  "admins": [
-    {
-      "id": "admin-1",
-      "username": "admin",
-      "passwordHash": "eec55efb9f6999cd17e6b857ab717ce0f9df703a7c9d13dcc4dcda76ecaf3be94acf7a6f45db0628ea7a9d8a71d6e34e1aa166960a8a344e1af84f15cd2d3ed5",
-      "name": "Konjo Export Administrator",
-      "role": "Superadmin"
-    }
-  ],
+  "admins": [],
+  "admin_sessions": [],
+  "password_reset_tokens": [],
   "product_categories": [
     {
       "id": "cat-raw",
@@ -323,65 +317,8 @@
       "id": "gal-8d2f7a65-3d46-42ad-9ea1-056c8e80b6c9"
     }
   ],
-  "inquiries": [
-    {
-      "id": "inq-1",
-      "company_name": "Geneva Roasters SA",
-      "contact_name": "Marc Dubois",
-      "email": "marc@genevaroasters.ch",
-      "phone": "+41 22 799 0101",
-      "country": "Switzerland",
-      "product_id": "prod-yirgacheffe-g1",
-      "coffee_type": "Yirgacheffe Grade 1 Washed",
-      "volume_required": "1 FCL (19.2 Metric Tons)",
-      "target_price": "$5.80 / lb FOB Djibouti",
-      "message": "We are looking to secure our washed Yirgacheffe G1 allocations for the 2026 shipping season. Please provide your available volumes, contract options, and sample dispatch details.",
-      "status": "new",
-      "created_at": "2026-07-02T15:30:00Z"
-    },
-    {
-      "id": "inq-2",
-      "company_name": "Tokyo Specialty Importers",
-      "contact_name": "Yuki Sato",
-      "email": "y.sato@coffeeimport.jp",
-      "phone": "+81 3 5500 9988",
-      "country": "Japan",
-      "product_id": "prod-guji-g1-anaerobic",
-      "coffee_type": "Guji Anaerobic Fermentation G1",
-      "volume_required": "30 Vacuum-packed Boxes (900 kg)",
-      "target_price": "$12.50 / kg",
-      "message": "Interested in securing this exclusive anaerobic micro-lot. Please send sample cupping details and let us know if vacuum packing is customizable.",
-      "status": "contacted",
-      "created_at": "2026-07-01T10:15:00Z"
-    },
-    {
-      "company_name": "Ayalew Ahmed Seid (Yenat Eij Fresh Injera, Processed Food & Spicies Exporter)",
-      "contact_name": "Ayalew Ahmed",
-      "email": "yenateijfreshenjera@gmail.com",
-      "phone": "0930982759",
-      "country": "Ethiopia",
-      "product_id": "Yirgacheffe Grade 1 Washed",
-      "coffee_type": "Yirgacheffe Grade 1 Washed",
-      "volume_required": "",
-      "target_price": "",
-      "message": "qwertyuioigfdfvjbkbj",
-      "id": "inq-c00886d2-7692-425f-a68d-9fd16627765a",
-      "status": "new",
-      "created_at": "2026-07-07T03:11:21.901Z"
-    }
-  ],
-  "newsletter_subscribers": [
-    {
-      "id": "sub-1",
-      "email": "roasted@gmail.com",
-      "created_at": "2026-07-03T11:00:00Z"
-    },
-    {
-      "id": "sub-d7e2b3ae-3f71-46c7-a8d4-a00598c53a84",
-      "email": "Shilto231@gmail.com",
-      "created_at": "2026-07-07T03:10:36.932Z"
-    }
-  ],
+  "inquiries": [],
+  "newsletter_subscribers": [],
   "site_settings": [
     {
       "key": "site_title",

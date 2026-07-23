@@ -205,7 +205,7 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     gallery_title: 'Glimpse Into Origin',
     gallery_subtitle: 'A visual journey across our highland farms, water mills, traditional ceremonies, and packaging facilities.',
     contact_title: 'Initiate Coffee Partnerships',
-    contact_subtitle: 'Contact our export headquarters in Addis Ababa or submit a formal inquiry to request samples and FOB price lists.',
+    contact_subtitle: 'Contact our export headquarters in Awassa or submit a formal inquiry to request samples and FOB price lists.',
     contact_form_title: 'Export Inquiry / Sample Request Form',
     contact_form_desc: 'Are you a commercial roaster or importer? Provide your requirements below to receive coffee samples, QA cupping reports, and FOB Djibouti pricing.',
     contact_comp_name: 'Company / Business Name',

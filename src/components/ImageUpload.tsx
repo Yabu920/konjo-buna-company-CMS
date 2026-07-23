@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, useId } from 'react';
 import { csrfHeaders } from '../auth-client.ts';
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
 }
 
 export default function ImageUpload({ name = 'image_url', initialUrl = null, maxSizeMB = 5, onChange }: Props) {
+  const inputId = useId();
   const [preview, setPreview] = useState<string | null>(initialUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,8 +86,9 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, max
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-4">
-        <label className="block text-xs font-bold text-[#2D2A26]/80 uppercase">Image</label>
+        <label htmlFor={inputId} className="block text-xs font-bold text-[#2D2A26]/80 uppercase">Image</label>
         <input
+          id={inputId}
           type="file"
           accept="image/jpeg,image/jpg,image/png,image/webp"
           onChange={handleFileChange}
@@ -94,10 +96,10 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, max
         />
         {uploading && <span className="text-sm text-[#7E4015]">Uploading…</span>}
       </div>
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div role="alert" className="text-sm text-red-600">{error}</div>}
       {preview && (
         <div className="mt-2">
-          <img src={preview} alt="preview" className="max-w-xs max-h-40 object-cover border" />
+          <img src={preview} alt="Selected upload preview" className="max-w-xs max-h-40 object-cover border" />
         </div>
       )}
       {/* ensure there's a hidden input for forms that rely on image_url value */}

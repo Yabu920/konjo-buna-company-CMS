@@ -3,7 +3,10 @@ import crypto from 'node:crypto';
 import type { CookieOptions, NextFunction, Request, RequestHandler, Response } from 'express';
 import { db } from './db-adapter.js';
 import type { Admin, AdminSession } from './db.js';
+import { rateLimitConfiguration } from './config.js';
 import { hashAdminPassword, verifyStoredAdminPassword } from './password.js';
+import { BoundedMemoryRateLimiter, clientIp } from './rate-limit.js';
+import { safeLogError } from './safe-log.js';
 
 export interface SafeAdmin {
   id: string;
@@ -114,7 +117,7 @@ export async function verifyAdminPassword(admin: Admin, password: string): Promi
   try {
     await db.updateAdminPassword(admin.id, await hashAdminPassword(password));
   } catch (error) {
-    console.error(`Unable to upgrade legacy password hash for admin ${admin.id}:`, error);
+    safeLogError('Unable to upgrade legacy admin password hash.', error, { adminId: admin.id });
   }
   return true;
 }
@@ -195,24 +198,15 @@ export const requireRecentPassword: RequestHandler = (req: AdminRequest, res, ne
   next();
 };
 
-type RateEntry = { count: number; resetAt: number };
-const loginAttempts = new Map<string, RateEntry>();
-const recoveryAttempts = new Map<string, RateEntry>();
-
-function consumeRateLimit(store: Map<string, RateEntry>, key: string, windowMs: number): RateEntry {
-  const now = Date.now();
-  const current = store.get(key);
-  const entry = !current || current.resetAt <= now ? { count: 0, resetAt: now + windowMs } : current;
-  entry.count += 1;
-  store.set(key, entry);
-  return entry;
-}
+const rateConfig = rateLimitConfiguration(process.env);
+const loginAttempts = new BoundedMemoryRateLimiter(rateConfig.windowMs, rateConfig.loginMax, rateConfig.maxEntries);
+const recoveryIpAttempts = new BoundedMemoryRateLimiter(rateConfig.windowMs, rateConfig.recoveryIpMax, rateConfig.maxEntries);
+const recoveryTargetAttempts = new BoundedMemoryRateLimiter(rateConfig.windowMs, rateConfig.recoveryTargetMax, rateConfig.maxEntries);
 
 export const loginRateLimit: RequestHandler = (req, res, next) => {
-  const key = req.ip || req.socket.remoteAddress || 'unknown';
-  const entry = consumeRateLimit(loginAttempts, key, 15 * 60 * 1000);
-  if (entry.count > 10) {
-    res.set('Retry-After', String(Math.ceil((entry.resetAt - Date.now()) / 1000)));
+  const result = loginAttempts.consume(clientIp(req));
+  if (!result.allowed) {
+    res.set('Retry-After', String(result.retryAfterSeconds));
     res.status(429).json({ error: 'Too many login attempts. Please try again later.' });
     return;
   }
@@ -220,14 +214,12 @@ export const loginRateLimit: RequestHandler = (req, res, next) => {
 };
 
 export function allowRecoveryAttempt(req: Request, discriminator: string): boolean {
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
-  const windowMs = 15 * 60 * 1000;
-  const ipEntry = consumeRateLimit(recoveryAttempts, `ip:${ip}`, windowMs);
-  const targetEntry = consumeRateLimit(recoveryAttempts, `target:${ip}:${discriminator}`, windowMs);
-  return ipEntry.count <= 10 && targetEntry.count <= 5;
+  const ip = clientIp(req);
+  const target = hashOpaqueToken(discriminator);
+  return recoveryIpAttempts.consume(ip).allowed
+    && recoveryTargetAttempts.consume(`${ip}:${target}`).allowed;
 }
 
 export function clearLoginRateLimit(req: Request): void {
-  const key = req.ip || req.socket.remoteAddress || 'unknown';
-  loginAttempts.delete(key);
+  loginAttempts.reset(clientIp(req));
 }

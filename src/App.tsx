@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, startTransition, Suspense, useEffect, useRef, useState } from 'react';
 import { 
   ArrowRight, MapPin, Mail, Phone, Calendar, User, 
   Search, Filter, Coffee, ChevronRight, CheckCircle, 
@@ -8,16 +8,57 @@ import { Product, ProductCategory, Service, NewsPost, GalleryImage, ViewType, In
 import { translations, faqsList } from './translations.js';
 import Header from './components/Header.tsx';
 import Footer from './components/Footer.tsx';
-import AdminPanel from './components/AdminPanel.tsx';
-import image1 from '../images/image-1.jpg';
-import packing from '../images/packing.png';
-import aboutBannerVideo from '../images/video.MOV';
-import image3 from '../images/IMG_8580.png';
-import logos from '../images/logo3.jpg';
+import packing from '../images/packing.webp';
+import aboutBannerVideo from '../images/video.webm';
+import image3 from '../images/IMG_8580.webp';
 import { csrfHeaders } from './auth-client.ts';
+import { inquiryProductValues } from './inquiry.ts';
+import { newsPath, parseAppRoute, pathForView, productPath } from './routing.ts';
+import { updateClientSeo } from './seo.ts';
+
+const AdminPanel = lazy(() => import('./components/AdminPanel.tsx'));
 
 const video = 'https://www.youtube.com/embed/34i7bXsD_ZI?autoplay=1&mute=1&loop=1&playlist=34i7bXsD_ZI&controls=1&playsinline=1&rel=0';
+
+function DeferredAboutVideo() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canLoad, setCanLoad] = useState(false);
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    const constrained = connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType ?? '');
+    if (constrained || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setCanLoad(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '160px' });
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="absolute inset-0">
+      <img src={packing} width="614" height="613" loading="lazy" alt="Traditional Ethiopian coffee preparation" className="w-full h-full object-cover" />
+      {canLoad && (
+        <video
+          className="absolute inset-0 w-full h-full object-cover scale-102 transition-transform duration-1000"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label="Traditional Ethiopian coffee ceremony"
+          src={aboutBannerVideo}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function App() {
+  const initialRoute = useRef(parseAppRoute()).current;
   // Localization State
   const [lang, setLang] = useState<'en' | 'am'>(() => {
     const saved = localStorage.getItem('konjo_lang');
@@ -25,12 +66,12 @@ export default function App() {
   });
 
   // Current view routing
-  const [currentView, setCurrentView] = useState<ViewType>(() => window.location.pathname === '/admin/reset-password' ? 'admin' : 'home');
-  const [selectedProductSlug, setSelectedProductSlug] = useState<string | null>(null);
-  const [selectedNewsSlug, setSelectedNewsSlug] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<ViewType>(initialRoute.view);
+  const [selectedProductSlug, setSelectedProductSlug] = useState<string | null>(initialRoute.productKey);
+  const [selectedNewsSlug, setSelectedNewsSlug] = useState<string | null>(initialRoute.newsKey);
 
   // Global search input state
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialRoute.searchQuery);
   const [searchResults, setSearchResults] = useState<{ products: Product[]; services: Service[]; news: NewsPost[] }>({
     products: [],
     services: [],
@@ -44,6 +85,10 @@ export default function App() {
   const [news, setNews] = useState<NewsPost[]>([]);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [settings, setSettings] = useState<SiteSettings[]>([]);
+  const [publicLoading, setPublicLoading] = useState(true);
+  const [publicError, setPublicError] = useState<string | null>(null);
+  const publicDataLoaded = useRef(false);
+  const publicRequest = useRef<Promise<void> | null>(null);
 
   // Filtering states
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
@@ -53,18 +98,45 @@ export default function App() {
 
   // Lightbox & details state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxCloseRef = useRef<HTMLButtonElement>(null);
+  const lightboxReturnFocus = useRef<HTMLElement | null>(null);
   const [faqOpenIndex, setFaqOpenIndex] = useState<number | null>(null);
 
   // Form Submissions states
   const [inquirySuccess, setInquirySuccess] = useState(false);
+  const [inquiryError, setInquiryError] = useState<string | null>(null);
   const [submittingInquiry, setSubmittingInquiry] = useState(false);
-  const [inquiryProductSelect, setInquiryProductSelect] = useState<string>('');
+  const [inquiryProductId, setInquiryProductId] = useState<string>('');
 
   // Admin authentication state
   const [adminUser, setAdminUser] = useState<{ id: string; username: string; email: string | null; name: string; role: string } | null>(null);
   const [adminAuthLoading, setAdminAuthLoading] = useState(true);
 
   const t = translations[lang];
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    lightboxCloseRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLightboxIndex(null);
+      if (event.key === 'ArrowLeft') setLightboxIndex(index => index === null ? null : (index === 0 ? gallery.length - 1 : index - 1));
+      if (event.key === 'ArrowRight') setLightboxIndex(index => index === null ? null : (index === gallery.length - 1 ? 0 : index + 1));
+      if (event.key === 'Tab') {
+        const dialog = document.getElementById('gallery-lightbox');
+        const focusable = Array.from(dialog?.querySelectorAll<HTMLElement>('button, [href], [tabindex]:not([tabindex="-1"])') ?? []);
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      lightboxReturnFocus.current?.focus();
+    };
+  }, [lightboxIndex === null, gallery.length]);
 
   const highlightCards = [
     {
@@ -117,12 +189,17 @@ export default function App() {
 
   const addressSetting = settings?.find(s => s.key === 'company_address');
   const addressVal = lang === 'en' 
-    ? (addressSetting?.value_en || 'Bole Road, Mega Building 5th Floor, Addis Ababa, Ethiopia') 
-    : (addressSetting?.value_am || 'ቦሌ መንገድ፥ ሜጋ ህንፃ 5ኛ ፎቅ፥ አዲስ አበባ፥ ኢትዮጵያ');
+    ? (addressSetting?.value_en || 'awassa Ethiopia')
+    : (addressSetting?.value_am || ' አዋሳ፥ ኢትዮጵያ');
 
   // Fetch collections from API
-  const fetchCollections = async () => {
-    try {
+  const fetchCollections = async (force = false) => {
+    if (publicDataLoaded.current && !force) return;
+    if (publicRequest.current && !force) return publicRequest.current;
+    const request = (async () => {
+      if (!publicDataLoaded.current) setPublicLoading(true);
+      setPublicError(null);
+      try {
       const freshRequest: RequestInit = { cache: 'no-store' };
       const [resProd, resCat, resSrv, resNews, resGal, resSet] = await Promise.all([
         fetch('/api/products', freshRequest),
@@ -133,21 +210,35 @@ export default function App() {
         fetch('/api/settings', freshRequest)
       ]);
 
-      if (resProd.ok) setProducts(await resProd.json());
-      if (resCat.ok) setCategories(await resCat.json());
-      if (resSrv.ok) setServices(await resSrv.json());
-      if (resNews.ok) setNews(await resNews.json());
-      if (resGal.ok) setGallery(await resGal.json());
-      if (resSet.ok) setSettings(await resSet.json());
-    } catch (err) {
-      console.error('Error fetching collections:', err);
+        const responses = [resProd, resCat, resSrv, resNews, resGal, resSet];
+        if (responses.some(response => !response.ok)) throw new Error('One or more public collections could not be loaded.');
+        const [nextProducts, nextCategories, nextServices, nextNews, nextGallery, nextSettings] = await Promise.all(responses.map(response => response.json()));
+        startTransition(() => {
+          setProducts(nextProducts);
+          setCategories(nextCategories);
+          setServices(nextServices);
+          setNews(nextNews);
+          setGallery(nextGallery);
+          setSettings(nextSettings);
+        });
+        publicDataLoaded.current = true;
+      } catch (err) {
+        console.error('Error fetching collections:', err);
+        setPublicError(lang === 'en' ? 'We could not load the latest website content.' : 'የቅርብ ጊዜውን የድረ-ገጽ ይዘት መጫን አልተቻለም።');
+      } finally {
+        setPublicLoading(false);
+      }
+    })();
+    publicRequest.current = request;
+    try {
+      await request;
+    } finally {
+      if (publicRequest.current === request) publicRequest.current = null;
     }
   };
 
   useEffect(() => {
-    if (currentView !== 'admin') {
-      void fetchCollections();
-    }
+    if (currentView !== 'admin' && !publicDataLoaded.current) void fetchCollections();
   }, [currentView]);
 
   useEffect(() => {
@@ -160,6 +251,13 @@ export default function App() {
       .finally(() => setAdminAuthLoading(false));
   }, []);
 
+  const activeProduct = products.find(product => product.slug === selectedProductSlug || product.id === selectedProductSlug);
+  const activeNewsPost = news.find(post => post.slug === selectedNewsSlug || post.id === selectedNewsSlug);
+
+  useEffect(() => {
+    updateClientSeo({ view: currentView, lang, product: activeProduct, newsPost: activeNewsPost });
+  }, [currentView, lang, activeProduct, activeNewsPost]);
+
   // Update language and persist
   const handleLanguageChange = (newLang: 'en' | 'am') => {
     setLang(newLang);
@@ -167,38 +265,58 @@ export default function App() {
   };
 
   // Perform global search
-  const handleGlobalSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const performGlobalSearch = async (query: string, updateHistory: boolean) => {
+    if (!query.trim()) return;
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setSearchResults(data);
         setCurrentView('search');
+        if (updateHistory) window.history.pushState({}, '', `/search?q=${encodeURIComponent(query)}`);
       }
     } catch (err) {
       console.error('Global search error:', err);
     }
   };
 
+  const handleGlobalSearch = async () => performGlobalSearch(searchQuery, true);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = parseAppRoute();
+      setCurrentView(route.view);
+      setSelectedProductSlug(route.productKey);
+      setSelectedNewsSlug(route.newsKey);
+      setSearchQuery(route.searchQuery);
+      if (route.searchQuery) void performGlobalSearch(route.searchQuery, false);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Submit Export Inquiry
   const handleInquirySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
     setSubmittingInquiry(true);
     setInquirySuccess(false);
+    setInquiryError(null);
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData(form);
+    const productValues = inquiryProductValues(products, inquiryProductId);
     const body = {
       company_name: formData.get('company_name') as string,
       contact_name: formData.get('contact_name') as string,
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       country: formData.get('country') as string,
-      coffee_type: formData.get('coffee_type') as string,
+      coffee_type: productValues.coffee_type,
       volume_required: formData.get('volume_required') as string,
       target_price: formData.get('target_price') as string,
       message: formData.get('message') as string,
-      product_id: inquiryProductSelect || ''
+      product_id: productValues.product_id,
     };
 
     try {
@@ -209,11 +327,15 @@ export default function App() {
       });
       if (res.ok) {
         setInquirySuccess(true);
-        e.currentTarget.reset();
-        setInquiryProductSelect('');
+        form.reset();
+        setInquiryProductId('');
+      } else {
+        const response = await res.json().catch(() => ({}));
+        setInquiryError(response.error || 'The inquiry could not be sent. Please try again.');
       }
     } catch (err) {
       console.error('Inquiry submission error:', err);
+      setInquiryError('The inquiry could not be sent. Please check your connection and try again.');
     } finally {
       setSubmittingInquiry(false);
     }
@@ -236,37 +358,42 @@ export default function App() {
   // Admin Session Handlers
   const handleAdminLogin = (user: { id: string; username: string; email: string | null; name: string; role: string }) => {
     setAdminUser(user);
-    setCurrentView('admin');
+    navigateTo('admin', '/admin');
   };
 
   const handleAdminLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', headers: csrfHeaders(false) });
     } catch {
-      // Clear local UI state even if the already-expired session cannot reach the server.
+
     }
     setAdminUser(null);
-    setCurrentView('home');
+    navigateTo('home', '/');
   };
 
   // Navigation controller helper
-  const navigateTo = (view: ViewType) => {
+  const navigateTo = (view: ViewType, explicitPath = pathForView(view)) => {
+    if (view !== 'product-detail') setSelectedProductSlug(null);
+    if (view !== 'news' || explicitPath === '/news') setSelectedNewsSlug(null);
     setCurrentView(view);
+    if (`${window.location.pathname}${window.location.search}` !== explicitPath) {
+      window.history.pushState({}, '', explicitPath);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const viewProductDetail = (slug: string) => {
     setSelectedProductSlug(slug);
-    navigateTo('product-detail');
+    navigateTo('product-detail', productPath(slug));
   };
 
   const viewNewsDetail = (slug: string) => {
     setSelectedNewsSlug(slug);
-    navigateTo('news');
+    navigateTo('news', newsPath(slug));
   };
 
   const triggerInquiryForProduct = (prod: Product) => {
-    setInquiryProductSelect(prod.id);
+    setInquiryProductId(prod.id);
     navigateTo('contact');
   };
 
@@ -288,11 +415,35 @@ export default function App() {
       />
 
       {/* Main page view switcher */}
-      <div className="flex-1">
+      <main className="flex-1" id="main-content">
+
+        {currentView !== 'admin' && currentView !== 'home' && publicLoading && (
+          <div className="min-h-[55vh] flex items-center justify-center px-6" role="status" aria-live="polite">
+            <div className="text-center space-y-3">
+              <Coffee className="h-10 w-10 text-[#7E4015] mx-auto animate-pulse" aria-hidden="true" />
+              <p className="font-semibold text-[#2D2A26]">{lang === 'en' ? 'Loading the latest coffee collection…' : 'የቅርብ ጊዜው የቡና ስብስብ በመጫን ላይ…'}</p>
+            </div>
+          </div>
+        )}
+
+        {currentView !== 'admin' && currentView !== 'home' && publicError && !publicLoading && (
+          <div className="min-h-[55vh] flex items-center justify-center px-6" role="alert">
+            <div className="max-w-lg text-center bg-white border border-red-200 p-8 space-y-4">
+              <h1 className="font-serif text-3xl font-bold">{lang === 'en' ? 'Content temporarily unavailable' : 'ይዘቱ ለጊዜው አይገኝም'}</h1>
+              <p className="text-sm text-gray-700">{publicError}</p>
+              <button type="button" onClick={() => void fetchCollections(true)} className="min-h-11 px-6 py-3 bg-[#7E4015] text-white font-bold uppercase tracking-wider">
+                {lang === 'en' ? 'Try again' : 'እንደገና ይሞክሩ'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentView !== 'admin' && (currentView === 'home' || (!publicLoading && !publicError)) && (
+          <>
 
         {/* 1. VIEW: HOME */}
         {currentView === 'home' && (
-          <div className="animate-fade-in" id="home-view">
+          <div id="home-view">
             
             {/* HERO SECTION */}
             <section className="relative text-[#2D2A26] py-16 md:py-24 border-b border-[#2D2A26]/10 px-4 sm:px-6 lg:px-8">
@@ -320,7 +471,7 @@ export default function App() {
                   <div className="flex flex-wrap gap-4 pt-4">
                     <button 
                       onClick={() => {
-                        setInquiryProductSelect('');
+                        setInquiryProductId('');
                         navigateTo('contact');
                       }}
                       className="px-8 py-4.5 border rounded-2xl bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] transition-colors  font-bold text-xs uppercase tracking-widest shadow-md"
@@ -357,7 +508,7 @@ export default function App() {
                   
                   {/* Main Visual Block (Natural Processed Specialty) */}
                   <div className="col-span-4 row-span-4 border rounded-2xl bg-[#2D2A26] relative overflow-hidden group">
-                    <div className="absolute inset-0 border rounded-2xl bg-cover bg-center opacity-120 group-hover:scale-102 transition-transform duration-700" style={{ backgroundImage: `url(${packing})` }}></div>
+                    <img src={packing} width="614" height="613" fetchPriority="high" alt="Konjo Buna specialty coffee packaging" className="absolute inset-0 w-full h-full border rounded-2xl object-cover opacity-120 group-hover:scale-102 transition-transform duration-700" />
                     {/* bg-[url('https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=1024')] */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#2D2A26] via-[#2D2A26]/40 to-transparent"></div>
                     <div className="absolute bottom-6 left-6 z-10 space-y-1">
@@ -416,7 +567,7 @@ export default function App() {
             </section>
 
             {/* HIGH-LIGHTS BENTO SECTION */}
-            <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-[#2D2A26]/10">
+            <section className="deferred-home-section py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-[#2D2A26]/10">
               <div className="mb-10 flex justify-center">
                 <h2 className="max-w-3xl text-center font-serif text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-[#2D2A26]">
                   {lang === 'en' ? 'Why Choose Konjo Coffee?' : 'ለምን ኮንጆ ቡናን ይመርጣሉ?'}
@@ -449,7 +600,7 @@ export default function App() {
             </section>
 
             {/* BENTO SECTION: ABOUT PREVIEW */}
-            <section className="py-24 bg-[#2D2A26] text-[#F8F1E7] border-y border-[#2D2A26]/10 overflow-hidden">
+            <section className="deferred-home-section py-24 bg-[#2D2A26] text-[#F8F1E7] border-y border-[#2D2A26]/10 overflow-hidden">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                   <div className="space-y-6">
@@ -472,14 +623,7 @@ export default function App() {
                   {/* Visual Bento Collage */}
                   <div className="relative  ">
                     <div className="aspect-square max-w-md mx-auto rounded-3xl overflow-hidden border border-[#F8F1E7]/10 shadow-2xl relative group">
-                      <video
-                          className="w-full h-full object-cover scale-102 transition-transform duration-1000"
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          src={aboutBannerVideo}
-                        />
+                      <DeferredAboutVideo />
                       {/* <img 
                       src={logos}
                         // src="https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?q=80&w=800" 
@@ -498,7 +642,7 @@ export default function App() {
             </section>
 
             {/* FEATURED SPECIALTY LOTS */}
-            <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="deferred-home-section py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
                 <div>
                   <span className="text-xs font-bold tracking-[0.25em] text-[#7E4015] uppercase block">Micro-Lots & Single-Origins</span>
@@ -515,8 +659,32 @@ export default function App() {
               </div>
 
               {/* Staggered list */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {products.filter(p => p.is_featured).slice(0, 3).map((prod) => (
+              {publicLoading && (
+                <div className="min-h-52 flex items-center justify-center border border-[#2D2A26]/10 bg-white" role="status" aria-live="polite">
+                  <div className="text-center space-y-3">
+                    <Coffee className="h-9 w-9 text-[#7E4015] mx-auto animate-pulse" aria-hidden="true" />
+                    <p className="text-sm font-semibold text-[#2D2A26]">{lang === 'en' ? 'Loading featured coffee lots…' : 'ተለይተው የቀረቡ የቡና ምርቶች በመጫን ላይ…'}</p>
+                  </div>
+                </div>
+              )}
+              {publicError && !publicLoading && (
+                <div className="min-h-52 flex items-center justify-center border border-red-200 bg-white p-8" role="alert">
+                  <div className="text-center space-y-4">
+                    <p className="text-sm text-gray-700">{publicError}</p>
+                    <button type="button" onClick={() => void fetchCollections(true)} className="min-h-11 px-6 py-3 bg-[#7E4015] text-white font-bold uppercase tracking-wider">
+                      {lang === 'en' ? 'Try again' : 'እንደገና ይሞክሩ'}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!publicLoading && !publicError && products.filter(p => p.is_featured).length === 0 && (
+                <div className="min-h-40 flex items-center justify-center border border-[#2D2A26]/10 bg-white p-8" role="status">
+                  <p className="text-sm text-gray-600">{lang === 'en' ? 'No featured coffee lots are currently available.' : 'በአሁኑ ጊዜ ተለይተው የቀረቡ የቡና ምርቶች የሉም።'}</p>
+                </div>
+              )}
+              {!publicLoading && !publicError && products.some(p => p.is_featured) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {products.filter(p => p.is_featured).slice(0, 3).map((prod) => (
                   <div 
                     key={prod.id} 
                     className="bg-white border border-[#2D2A26]/10 rounded-2xl overflow-hidden shadow-none flex flex-col group transition-all duration-300 hover:border-[#7E4015] hover:shadow-lg"
@@ -524,6 +692,9 @@ export default function App() {
                     <div className="relative h-64 overflow-hidden bg-gray-50">
                       <img 
                         src={prod.image_url} 
+                        width="800"
+                        height="600"
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" 
                         alt={lang === 'en' ? prod.title_en : prod.title_am} 
                       />
@@ -544,13 +715,14 @@ export default function App() {
                       </div>
 
                       <div className="pt-4 border-t border-[#2D2A26]/5 flex items-center justify-between">
-                        <button 
-                          onClick={() => viewProductDetail(prod.slug)}
-                          className="text-[10px] font-bold uppercase tracking-wider text-[#2D2A26] hover:text-[#7E4015] inline-flex items-center gap-1 transition-all"
+                        <a
+                          href={productPath(prod.slug)}
+                          onClick={(event) => { event.preventDefault(); viewProductDetail(prod.slug); }}
+                          className="min-h-11 text-[10px] font-bold uppercase tracking-wider text-[#2D2A26] hover:text-[#7E4015] inline-flex items-center gap-1 transition-all"
                         >
                           <span>Full Specifications</span>
                           <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
+                        </a>
                         <button 
                           onClick={() => triggerInquiryForProduct(prod)}
                           className="px-4 py-2.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[rgb(22,180,11)] hover:text-[#2D2A26] rounded-2xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
@@ -560,12 +732,13 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             {/* INTEGRITY / SERVICES PREVIEW */}
-            <section className="py-24 bg-[#F8F1E7] border-t border-[#2D2A26]/10">
+            <section className="deferred-home-section py-24 bg-[#F8F1E7] border-t border-[#2D2A26]/10">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
                   <span className="text-xs font-bold tracking-[0.25em] text-[#7E4015] uppercase block">Integrated Quality Chain</span>
@@ -609,6 +782,7 @@ export default function App() {
                 className="absolute inset-0 w-full h-full"
                 src={video}
                 title="Konjo Coffee Highlands"
+                loading="lazy"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
@@ -676,7 +850,7 @@ export default function App() {
                 <p className="text-md text-[#F8F1E7]/85 font-light leading-relaxed">{t.about_facilities_text}</p>
               </div>
               <div className="h-64 sm:h-80 rounded-2xl overflow-hidden border border-[#F8F1E7]/10">
-                <img src= {image3} className="w-full h-full object-cover" alt="Processing Stations" />
+                <img src={image3} width="1442" height="1091" loading="lazy" className="w-full h-full object-cover" alt="Konjo Buna coffee processing station" />
                 {/* <img src="https://images.unsplash.com/photo-1524350876685-274059332603?q=80&w=800" className="w-full h-full object-cover" alt="Processing Stations" /> */}
               </div>
             </div>
@@ -694,7 +868,7 @@ export default function App() {
                   { name: 'Sara Demeke', role: 'Chief of Sustainability', bio: 'Coordinates eco-friendly pulping processes and directs the cooperative premium school-build projects.', img: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400' }
                 ].map((member, mIdx) => (
                   <div key={mIdx} className="bg-white border border-[#2D2A26]/10 rounded-none p-6 text-center shadow-none hover:border-[#7E4015] hover:shadow-md transition-all">
-                    <img src={member.img} className="w-24 h-24 object-cover rounded-full mx-auto border border-[#2D2A26]/10 mb-4 shadow-sm" alt={member.name} />
+                    <img src={member.img} width="96" height="96" loading="lazy" className="w-24 h-24 object-cover rounded-full mx-auto border border-[#2D2A26]/10 mb-4 shadow-sm" alt={member.name} />
                     <h4 className="font-serif font-bold text-lg text-gray-900">{member.name}</h4>
                     <p className="text-xs text-[#7E4015] font-semibold tracking-wider uppercase mt-1">{member.role}</p>
                     <p className="text-xs text-gray-500 mt-3 leading-relaxed font-light">{member.bio}</p>
@@ -795,8 +969,11 @@ export default function App() {
                       <div className="relative h-60 overflow-hidden bg-gray-50">
                         <img 
                           src={prod.image_url} 
+                          width="800"
+                          height="600"
+                          loading="lazy"
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" 
-                          alt="" 
+                          alt={lang === 'en' ? prod.title_en : prod.title_am}
                         />
                         <div className="absolute top-2 left-4 bg-[#2D2A26] border border-[#7E4015]/30 text-[#F8F1E7] text-[9px] font-bold px-3 py-1.5 rounded-none uppercase tracking-wider">
                           {prod.elevation}
@@ -817,13 +994,14 @@ export default function App() {
                         </div>
 
                         <div className="pt-4 border-t border-[#2D2A26]/5 flex items-center justify-between">
-                          <button 
-                            onClick={() => viewProductDetail(prod.slug)}
-                            className="text-[12px] font-bold uppercase tracking-wider text-[#2D2A26] hover:text-[#7E4015] inline-flex items-center gap-1 transition-all"
+                          <a
+                            href={productPath(prod.slug)}
+                            onClick={(event) => { event.preventDefault(); viewProductDetail(prod.slug); }}
+                            className="min-h-11 text-[12px] font-bold uppercase tracking-wider text-[#2D2A26] hover:text-[#7E4015] inline-flex items-center gap-1 transition-all"
                           >
                             <span>{lang === 'en' ? 'Full Details' : 'ሙሉ መግለጫ'}</span>
                             <ArrowRight className="h-3.5 w-3.5" />
-                          </button>
+                          </a>
                           <button 
                             onClick={() => triggerInquiryForProduct(prod)}
                             className="px-4 py-2.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] rounded-2xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm"
@@ -843,7 +1021,7 @@ export default function App() {
 
         {/* 4. VIEW: PRODUCT DETAIL */}
         {currentView === 'product-detail' && (() => {
-          const prod = products.find(p => p.slug === selectedProductSlug);
+          const prod = products.find(p => p.slug === selectedProductSlug || p.id === selectedProductSlug);
           if (!prod) return (
             <div className="text-center py-24 max-w-7xl mx-auto">
               <p className="text-red-600 font-semibold">Product lot metadata not found.</p>
@@ -873,7 +1051,7 @@ export default function App() {
                 
                 {/* Big Image Panel */}
                 <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-md relative border border-[#2D2A26]/10">
-                  <img src={prod.image_url} className="w-full h-full object-cover" alt="" />
+                  <img src={prod.image_url} width="1200" height="900" className="w-full h-full object-cover" alt={lang === 'en' ? prod.title_en : prod.title_am} />
                   <div className="absolute top-4 left-4 bg-[#2D2A26] text-white text-[9px] font-bold px-3 py-1.5 rounded-none uppercase tracking-wider">
                     {t.product_elevation}: {prod.elevation}
                   </div>
@@ -951,20 +1129,21 @@ export default function App() {
                   <h3 className="font-serif text-xl font-bold text-[#2D2A26] text-center border-b border-[#2D2A26]/10 pb-4">{t.product_related_title}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
                     {related.map(rel => (
-                      <div 
+                      <a
                         key={rel.id}
-                        onClick={() => viewProductDetail(rel.slug)}
-                        className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none cursor-pointer group transition-all hover:border-[#7E4015]"
+                        href={productPath(rel.slug)}
+                        onClick={(event) => { event.preventDefault(); viewProductDetail(rel.slug); }}
+                        className="block bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none group transition-all hover:border-[#7E4015]"
                       >
                         <div className="h-44 overflow-hidden relative bg-gray-50">
-                          <img src={rel.image_url} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500" alt="" />
+                          <img src={rel.image_url} width="800" height="600" loading="lazy" className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500" alt={lang === 'en' ? rel.title_en : rel.title_am} />
                         </div>
                         <div className="p-4 space-y-1">
                           <span className="text-[9px] font-mono font-bold text-[#7E4015] tracking-widest uppercase">{lang === 'en' ? rel.origin_en : rel.origin_am}</span>
                           <h4 className="font-serif font-bold text-[#2D2A26] leading-tight group-hover:text-[#7E4015] transition-colors">{lang === 'en' ? rel.title_en : rel.title_am}</h4>
                           <p className="text-xs text-gray-400 mt-1">{rel.elevation}</p>
                         </div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -987,6 +1166,11 @@ export default function App() {
 
             {/* List columns */}
             <div className="space-y-12">
+              {services.length === 0 && (
+                <div className="bg-white border border-[#2D2A26]/10 p-12 text-center text-sm text-gray-600" role="status">
+                  {lang === 'en' ? 'No services are currently published.' : 'á‰ áŠ áˆáŠ‘ áŒŠá‹œ á‹¨á‰³á‰°áˆ˜ áŠ áŒˆáˆáŒáˆŽá‰µ á‹¨áˆˆáˆá¢'}
+                </div>
+              )}
               {services.map((srv, index) => {
                 const isEven = index % 2 === 0;
                 return (
@@ -1001,7 +1185,7 @@ export default function App() {
                     <div className={`lg:col-span-5 h-72 sm:h-96 rounded-none overflow-hidden border border-[#2D2A26]/10 ${
                       isEven ? 'lg:order-1' : 'lg:order-2'
                     }`}>
-                      <img src={srv.image_url} className="w-full h-full object-cover scale-102" alt="" />
+                      <img src={srv.image_url} width="1000" height="700" loading="lazy" className="w-full h-full object-cover scale-102" alt={lang === 'en' ? srv.title_en : srv.title_am} />
                     </div>
 
                     {/* Text Details */}
@@ -1034,7 +1218,7 @@ export default function App() {
 
         {/* 6. VIEW: NEWS AND REPORTS */}
         {currentView === 'news' && (() => {
-          const activePost = selectedNewsSlug ? news.find(n => n.slug === selectedNewsSlug) : null;
+          const activePost = selectedNewsSlug ? news.find(n => n.slug === selectedNewsSlug || n.id === selectedNewsSlug) : null;
           
           if (activePost) {
             return (
@@ -1076,7 +1260,7 @@ export default function App() {
 
                 {/* Banner Image */}
                 <div className="h-96 sm:h-[480px] rounded-none overflow-hidden shadow-none border border-[#2D2A26]/10">
-                  <img src={activePost.image_url} className="w-full h-full object-cover scale-102" alt="" />
+                  <img src={activePost.image_url} width="1200" height="800" className="w-full h-full object-cover scale-102" alt={lang === 'en' ? activePost.title_en : activePost.title_am} />
                 </div>
 
                 {/* Article Content Body */}
@@ -1138,7 +1322,7 @@ export default function App() {
                         className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none flex flex-col group transition-all duration-300 hover:border-[#7E4015] hover:shadow-md"
                       >
                         <div className="h-56 overflow-hidden relative bg-gray-50">
-                          <img src={post.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" alt="" />
+                          <img src={post.image_url} width="1000" height="700" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" alt={lang === 'en' ? post.title_en : post.title_am} />
                           <span className="absolute top-4 left-4 bg-[#2D2A26] text-[#F8F1E7] text-[9px] font-bold px-3 py-1.5 rounded-none uppercase tracking-wider">{lang === 'en' ? post.category_en : post.category_am}</span>
                         </div>
                         
@@ -1155,14 +1339,15 @@ export default function App() {
 
                           <div className="pt-4 border-t border-[#2D2A26]/5 flex items-center justify-between">
                             <span className="text-[10px] font-medium text-gray-400 font-mono">By: {lang === 'en' ? post.author_en.split(',')[0] : post.author_am.split(',')[0]}</span>
-                            <button
+                            <a
                               id={`read-article-btn-${post.slug}`}
-                              onClick={() => viewNewsDetail(post.slug)}
-                              className="text-[10px] font-bold uppercase tracking-wider text-[#7E4015] hover:text-[#2D2A26] inline-flex items-center gap-1 transition-colors"
+                              href={newsPath(post.slug)}
+                              onClick={(event) => { event.preventDefault(); viewNewsDetail(post.slug); }}
+                              className="min-h-11 text-[10px] font-bold uppercase tracking-wider text-[#7E4015] hover:text-[#2D2A26] inline-flex items-center gap-1 transition-colors"
                             >
                               <span>{t.news_read_post}</span>
                               <ArrowRight className="h-3.5 w-3.5" />
-                            </button>
+                            </a>
                           </div>
                         </div>
                       </div>
@@ -1222,19 +1407,29 @@ export default function App() {
               const filtered = gallery.filter(g => galleryCategoryFilter === 'all' || g.category_en === galleryCategoryFilter);
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="gallery-grid">
+                  {filtered.length === 0 && (
+                    <p className="sm:col-span-2 md:col-span-3 lg:col-span-4 bg-white border border-[#2D2A26]/10 p-12 text-center text-sm text-gray-600" role="status">
+                      {lang === 'en' ? 'No gallery images are available in this category.' : 'á‰ á‹šáˆ… áˆá‹µá‰¥ á‹áˆµáŒ¥ á‹¨áŒ‹áˆˆáˆª áˆáˆµáˆŽá‰½ á‹¨áˆ‰áˆá¢'}
+                    </p>
+                  )}
                   {filtered.map((item, index) => (
-                    <div 
+                    <button
+                      type="button"
                       key={item.id}
-                      onClick={() => setLightboxIndex(index)}
-                      className="group bg-white rounded-none overflow-hidden border border-[#2D2A26]/10 shadow-none hover:shadow-md cursor-zoom-in transition-all relative aspect-square"
+                      onClick={(event) => {
+                        lightboxReturnFocus.current = event.currentTarget;
+                        setLightboxIndex(gallery.findIndex(image => image.id === item.id));
+                      }}
+                      aria-label={`${lang === 'en' ? item.title_en : item.title_am}; open image ${index + 1} of ${filtered.length}`}
+                      className="group bg-white text-left rounded-none overflow-hidden border border-[#2D2A26]/10 shadow-none hover:shadow-md cursor-zoom-in transition-all relative aspect-square"
                     >
-                      <img src={item.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" alt="" />
+                      <img src={item.image_url} width="800" height="800" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" alt={lang === 'en' ? item.title_en : item.title_am} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
                         <span className="text-[#7E4015] text-[9px] font-bold uppercase tracking-wider">{lang === 'en' ? item.category_en : item.category_am}</span>
                         <h4 className="font-serif text-lg font-bold text-[#F8F1E7] mt-0.5 line-clamp-1">{lang === 'en' ? item.title_en : item.title_am}</h4>
                         <p className="text-[10px] text-[#F8F1E7]/70 line-clamp-1 mt-0.5 font-light">{lang === 'en' ? item.description_en : item.description_am}</p>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               );
@@ -1242,7 +1437,7 @@ export default function App() {
 
             {/* LIGHTBOX OVERLAY */}
             {lightboxIndex !== null && (
-              <div className="fixed inset-0 z-50 bg-[#2D2A26] bg-opacity-98 flex flex-col justify-between p-6 animate-fade-in text-white" id="gallery-lightbox">
+              <div className="fixed inset-0 z-50 bg-[#2D2A26] bg-opacity-98 flex flex-col justify-between p-6 animate-fade-in text-white" id="gallery-lightbox" role="dialog" aria-modal="true" aria-labelledby="gallery-lightbox-title">
                 
                 {/* Top header */}
                 <div className="flex items-center justify-between border-b border-[#2D2A26]/10 pb-4">
@@ -1250,13 +1445,16 @@ export default function App() {
                     <span className="text-[#7E4015] text-[10px] font-bold uppercase tracking-widest block">
                       {lang === 'en' ? gallery[lightboxIndex].category_en : gallery[lightboxIndex].category_am}
                     </span>
-                    <h3 className="font-serif text-lg sm:text-xl font-bold text-[#F8F1E7]">
+                    <h3 id="gallery-lightbox-title" className="font-serif text-lg sm:text-xl font-bold text-[#F8F1E7]">
                       {lang === 'en' ? gallery[lightboxIndex].title_en : gallery[lightboxIndex].title_am}
                     </h3>
                   </div>
                   <button 
+                    ref={lightboxCloseRef}
+                    type="button"
                     onClick={() => setLightboxIndex(null)}
-                    className="p-2 border border-[#2D2A26]/20 hover:border-white rounded-none hover:bg-white/10 transition-all text-[#F8F1E7]"
+                    aria-label="Close gallery image"
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center p-2 border border-white/30 hover:border-white rounded-none hover:bg-white/10 transition-all text-[#F8F1E7]"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -1265,19 +1463,23 @@ export default function App() {
                 {/* Main image carousel viewport */}
                 <div className="flex-1 flex items-center justify-between max-w-5xl mx-auto w-full py-8">
                   <button 
+                    type="button"
                     onClick={() => setLightboxIndex(lightboxIndex === 0 ? gallery.length - 1 : lightboxIndex - 1)}
-                    className="p-3 bg-white/5 hover:bg-[#7E4015] border border-[#2D2A26]/20 hover:border-transparent rounded-none transition-all text-[#F8F1E7]"
+                    aria-label="Previous gallery image"
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-white/5 hover:bg-[#7E4015] border border-white/30 hover:border-transparent rounded-none transition-all text-[#F8F1E7]"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
 
                   <div className="max-h-[60vh] max-w-[80vw] overflow-hidden rounded-none shadow-2xl border border-[#2D2A26]/20">
-                    <img src={gallery[lightboxIndex].image_url} className="w-full max-h-[60vh] object-contain" alt="" />
+                    <img src={gallery[lightboxIndex].image_url} width="1200" height="900" className="w-full max-h-[60vh] object-contain" alt={lang === 'en' ? gallery[lightboxIndex].title_en : gallery[lightboxIndex].title_am} />
                   </div>
 
                   <button 
+                    type="button"
                     onClick={() => setLightboxIndex(lightboxIndex === gallery.length - 1 ? 0 : lightboxIndex + 1)}
-                    className="p-3 bg-white/5 hover:bg-[#7E4015] border border-[#2D2A26]/20 hover:border-transparent rounded-none transition-all text-[#F8F1E7]"
+                    aria-label="Next gallery image"
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-white/5 hover:bg-[#7E4015] border border-white/30 hover:border-transparent rounded-none transition-all text-[#F8F1E7]"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
@@ -1317,53 +1519,55 @@ export default function App() {
                 </div>
 
                 {inquirySuccess && (
-                  <div className="bg-green-50/50 border border-green-200 text-green-800 p-5 rounded-none flex items-start gap-3.5 shadow-none animate-fade-in" id="contact-success-banner">
+                  <div role="status" className="bg-green-50/50 border border-green-200 text-green-800 p-5 rounded-none flex items-start gap-3.5 shadow-none animate-fade-in" id="contact-success-banner">
                     <CheckCircle className="h-6 w-6 shrink-0 text-green-600 mt-0.5" />
                     <div className="text-xs leading-relaxed font-semibold">
                       {t.contact_success_alert}
                     </div>
                   </div>
                 )}
+                {inquiryError && <div role="alert" className="border border-red-200 bg-red-50 p-4 text-sm text-red-800">{inquiryError}</div>}
 
                 <form onSubmit={handleInquirySubmit} className="space-y-4" id="export-inquiry-form">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_comp_name} *</label>
-                      <input type="text" name="company_name" required className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                      <label htmlFor="inquiry-company" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_comp_name} *</label>
+                      <input id="inquiry-company" type="text" name="company_name" required className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_cont_name} *</label>
-                      <input type="text" name="contact_name" required className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_email} *</label>
-                      <input type="email" name="email" required className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_phone}</label>
-                      <input type="text" name="phone" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                      <label htmlFor="inquiry-contact" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_cont_name} *</label>
+                      <input id="inquiry-contact" type="text" name="contact_name" required className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_country}</label>
-                      <input type="text" name="country" placeholder="e.g. Switzerland" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                      <label htmlFor="inquiry-email" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_email} *</label>
+                      <input id="inquiry-email" type="email" name="email" required className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">Specialty Coffee lot</label>
+                      <label htmlFor="inquiry-phone" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_phone}</label>
+                      <input id="inquiry-phone" type="text" name="phone" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="inquiry-country" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_country}</label>
+                      <input id="inquiry-country" type="text" name="country" placeholder="e.g. Switzerland" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                    </div>
+                    <div>
+                      <label htmlFor="inquiry-product" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">Specialty Coffee lot</label>
                       <select 
+                        id="inquiry-product"
                         name="coffee_type"
-                        value={inquiryProductSelect}
-                        onChange={(e) => setInquiryProductSelect(e.target.value)}
+                        value={inquiryProductId}
+                        onChange={(e) => setInquiryProductId(e.target.value)}
                         className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none"
                       >
-                        <option value="General Inquiry">General Corporate / Other Inquiry</option>
+                        <option value="">General Corporate / Other Inquiry</option>
                         {products.map(p => (
-                          <option key={p.id} value={p.title_en}>{p.title_en}</option>
+                          <option key={p.id} value={p.id}>{lang === 'en' ? p.title_en : p.title_am}</option>
                         ))}
                       </select>
                     </div>
@@ -1371,18 +1575,18 @@ export default function App() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_vol}</label>
-                      <input type="text" name="volume_required" placeholder="e.g. 1 FCL, 20 Jute bags" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                      <label htmlFor="inquiry-volume" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_vol}</label>
+                      <input id="inquiry-volume" type="text" name="volume_required" placeholder="e.g. 1 FCL, 20 Jute bags" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_price}</label>
-                      <input type="text" name="target_price" placeholder="e.g. $5.80 FOB" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                      <label htmlFor="inquiry-price" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_price}</label>
+                      <input id="inquiry-price" type="text" name="target_price" placeholder="e.g. $5.80 FOB" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_msg} *</label>
-                    <textarea name="message" required rows={5} placeholder="Describe packaging needs, shipping coordinates, or sample requests..." className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                    <label htmlFor="inquiry-message" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_msg} *</label>
+                    <textarea id="inquiry-message" name="message" required rows={5} placeholder="Describe packaging needs, shipping coordinates, or sample requests..." className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
                   </div>
 
                   <div className="pt-2">
@@ -1403,7 +1607,7 @@ export default function App() {
                 
                 {/* Headquarters card */}
                 <div className="bg-[#2D2A26] text-[#F8F1E7] p-8 rounded-none border border-[#2D2A26]/10 shadow-none space-y-6">
-                  <h3 className="font-serif text-xl font-bold text-[#7E4015]">Addis Ababa Headquarters</h3>
+                  <h3 className="font-serif text-xl font-bold text-[#7E4015]">Awassa Headquarters</h3>
                   
                   <ul className="space-y-4 text-xs font-light text-[#F8F1E7]/85">
                     <li className="flex items-start gap-3">
@@ -1424,7 +1628,7 @@ export default function App() {
                 {/* Stylized Interactive Map Area */}
                 <div className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none">
                   <div className="p-4 bg-gray-50 border-b border-[#2D2A26]/5 flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono">Bole road headquarter coordinates</span>
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono"> headquarter coordinates</span>
                     <span className="text-[10px] font-bold text-[#7E4015] font-mono">9.0041° N, 38.7779° E</span>
                   </div>
                   {/* Visual Map Representation */}
@@ -1465,9 +1669,12 @@ export default function App() {
                     className="bg-white border border-[#2D2A26]/10 rounded-none shadow-none overflow-hidden hover:border-[#7E4015] transition-all duration-300"
                   >
                     <button
+                      type="button"
                       id={`faq-toggle-${fIdx}`}
                       onClick={() => setFaqOpenIndex(isOpen ? null : fIdx)}
-                      className="w-full flex items-center justify-between p-6 text-left transition-colors hover:bg-[#F8F1E7]/25"
+                      aria-expanded={isOpen}
+                      aria-controls={`faq-answer-${fIdx}`}
+                      className="w-full min-h-11 flex items-center justify-between p-6 text-left transition-colors hover:bg-[#F8F1E7]/25"
                     >
                       <h3 className="font-serif text-base sm:text-lg font-bold text-[#2D2A26] pr-4">
                         {lang === 'en' ? faq.q_en : faq.q_am}
@@ -1475,7 +1682,7 @@ export default function App() {
                       <HelpCircle className={`h-5 w-5 text-[#7E4015] shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isOpen && (
-                      <div className="px-6 pb-6 pt-1 text-xs sm:text-sm text-gray-500 font-light leading-relaxed border-t border-[#2D2A26]/5 animate-fade-in" id={`faq-answer-${fIdx}`}>
+                      <div role="region" aria-labelledby={`faq-toggle-${fIdx}`} className="px-6 pb-6 pt-1 text-xs sm:text-sm text-gray-500 font-light leading-relaxed border-t border-[#2D2A26]/5 animate-fade-in" id={`faq-answer-${fIdx}`}>
                         {lang === 'en' ? faq.a_en : faq.a_am}
                       </div>
                     )}
@@ -1513,9 +1720,9 @@ export default function App() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {searchResults.products.map(p => (
                         <div key={p.id} className="bg-white border border-[#2D2A26]/10 p-5 rounded-none shadow-none flex items-start gap-4">
-                          <img src={p.image_url} className="w-16 h-16 object-cover rounded-none border border-[#2D2A26]/5" alt="" />
+                          <img src={p.image_url} width="64" height="64" loading="lazy" className="w-16 h-16 object-cover rounded-none border border-[#2D2A26]/5" alt={lang === 'en' ? p.title_en : p.title_am} />
                           <div className="space-y-1">
-                            <h4 onClick={() => viewProductDetail(p.slug)} className="font-serif font-bold text-sm text-[#2D2A26] hover:text-[#7E4015] cursor-pointer line-clamp-1">{lang === 'en' ? p.title_en : p.title_am}</h4>
+                            <h4 className="font-serif font-bold text-sm line-clamp-1"><a href={productPath(p.slug)} onClick={(event) => { event.preventDefault(); viewProductDetail(p.slug); }} className="text-[#2D2A26] hover:text-[#7E4015]">{lang === 'en' ? p.title_en : p.title_am}</a></h4>
                             <p className="text-[10px] text-gray-400 font-mono">{p.elevation}</p>
                             <p className="text-xs text-gray-500 line-clamp-1">{lang === 'en' ? p.description_en : p.description_am}</p>
                           </div>
@@ -1531,10 +1738,10 @@ export default function App() {
                     <h3 className="font-serif text-lg font-bold text-[#2D2A26] border-l-2 border-[#7E4015] pl-3">Sourcing Services Matches</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {searchResults.services.map(s => (
-                        <div key={s.id} onClick={() => navigateTo('services')} className="bg-white border border-[#2D2A26]/10 p-5 rounded-none shadow-none cursor-pointer hover:border-[#7E4015]">
+                        <a key={s.id} href="/services" onClick={(event) => { event.preventDefault(); navigateTo('services'); }} className="block bg-white border border-[#2D2A26]/10 p-5 rounded-none shadow-none hover:border-[#7E4015]">
                           <h4 className="font-serif font-bold text-sm text-[#2D2A26]">{lang === 'en' ? s.title_en : s.title_am}</h4>
                           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{lang === 'en' ? s.description_en : s.description_am}</p>
-                        </div>
+                        </a>
                       ))}
                     </div>
                   </div>
@@ -1546,11 +1753,11 @@ export default function App() {
                     <h3 className="font-serif text-lg font-bold text-[#2D2A26] border-l-2 border-[#7E4015] pl-3">Articles & Reports Matches</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {searchResults.news.map(n => (
-                        <div key={n.id} onClick={() => viewNewsDetail(n.slug)} className="bg-white border border-[#2D2A26]/10 p-5 rounded-none shadow-none cursor-pointer hover:border-[#7E4015]">
+                        <a key={n.id} href={newsPath(n.slug)} onClick={(event) => { event.preventDefault(); viewNewsDetail(n.slug); }} className="block bg-white border border-[#2D2A26]/10 p-5 rounded-none shadow-none hover:border-[#7E4015]">
                           <span className="text-[10px] text-gray-400 font-mono">{new Date(n.published_at).toLocaleDateString()}</span>
                           <h4 className="font-serif font-bold text-sm text-[#2D2A26] mt-0.5">{lang === 'en' ? n.title_en : n.title_am}</h4>
                           <p className="text-xs text-gray-500 mt-1 line-clamp-1">{lang === 'en' ? n.excerpt_en : n.excerpt_am}</p>
-                        </div>
+                        </a>
                       ))}
                     </div>
                   </div>
@@ -1562,18 +1769,23 @@ export default function App() {
           </div>
         )}
 
-        {/* 11. VIEW: ADMIN CMS DASHBOARD */}
-        {currentView === 'admin' && (
-          <AdminPanel 
-            currentUser={adminUser}
-            authLoading={adminAuthLoading}
-            onLoginSuccess={handleAdminLogin}
-            onLogout={handleAdminLogout}
-            onPublicDataUpdate={fetchCollections}
-          />
+          </>
         )}
 
-      </div>
+        {/* 11. VIEW: ADMIN CMS DASHBOARD */}
+        {currentView === 'admin' && (
+          <Suspense fallback={<div className="min-h-[55vh] flex items-center justify-center" role="status">Loading secure administration…</div>}>
+            <AdminPanel
+              currentUser={adminUser}
+              authLoading={adminAuthLoading}
+              onLoginSuccess={handleAdminLogin}
+              onLogout={handleAdminLogout}
+              onPublicDataUpdate={() => fetchCollections(true)}
+            />
+          </Suspense>
+        )}
+
+      </main>
 
       {/* Footer element */}
       {currentView !== 'admin' && (

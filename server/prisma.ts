@@ -32,7 +32,9 @@ function createPrismaClient() {
   const adapter = new PrismaMariaDb(adapterConfig(databaseUrl));
   return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    // Production request errors are redacted by the Express error boundary.
+    // Avoid Prisma's detailed error logger because it may include query values.
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : [],
   });
 }
 

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Coffee, Mail, Phone, MapPin, Youtube, Instagram, Linkedin, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Youtube, Instagram, Linkedin, Send } from 'lucide-react';
 import { ViewType } from '../types.js';
 import { translations } from '../translations.js';
+import { pathForView } from '../routing.ts';
 
 interface FooterProps {
   onNavigate: (view: ViewType) => void;
@@ -58,9 +59,10 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
           
           {/* Column 1: Company Profile */}
           <div className="space-y-6">
-            <div 
-              onClick={() => onNavigate('home')} 
-              className="flex items-center gap-3 cursor-pointer group"
+            <a
+              href="/"
+              onClick={(event) => { event.preventDefault(); onNavigate('home'); }}
+              className="flex items-center gap-3 group min-h-11"
               id="footer-brand-logo"
             >
               <div className="w-8 h-8 bg-[#7E4015] rounded-full flex items-center justify-center">
@@ -69,20 +71,20 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
               <h2 className="font-serif text-xl font-bold tracking-tight text-[#F8F1E7] uppercase">
                 {siteTitle}
               </h2>
-            </div>
+            </a>
             <p className="text-xs text-[#F8F1E7]/60 leading-relaxed font-light">
               {t.footer_tagline}
             </p>
             {/* Social Icons */}
             <div className="flex items-center gap-2 pt-2">
-              <a href="#" className="p-3 bg-[#2D2A26] border border-[#F8F1E7]/10 hover:border-[#7E4015] hover:text-[#7E4015] text-[#F8F1E7] rounded-none transition-all duration-300">
-                <Instagram className="h-4 w-4" />
+              <a href="#" aria-label="Konjo Buna on Instagram" className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-[#2D2A26] border border-[#F8F1E7]/20 hover:border-[#D08A44] hover:text-[#D08A44] text-[#F8F1E7] rounded-none transition-all duration-300">
+                <Instagram className="h-4 w-4" aria-hidden="true" />
               </a>
-              <a href="#" className="p-3 bg-[#2D2A26] border border-[#F8F1E7]/10 hover:border-[#7E4015] hover:text-[#7E4015] text-[#F8F1E7] rounded-none transition-all duration-300">
-                <Linkedin className="h-4 w-4" />
+              <a href="#" aria-label="Konjo Buna on LinkedIn" className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-[#2D2A26] border border-[#F8F1E7]/20 hover:border-[#D08A44] hover:text-[#D08A44] text-[#F8F1E7] rounded-none transition-all duration-300">
+                <Linkedin className="h-4 w-4" aria-hidden="true" />
               </a>
-              <a href="#" className="p-3 bg-[#2D2A26] border border-[#F8F1E7]/10 hover:border-[#7E4015] hover:text-[#7E4015] text-[#F8F1E7] rounded-none transition-all duration-300">
-                <Youtube className="h-4 w-4" />
+              <a href="#" aria-label="Konjo Buna on YouTube" className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-[#2D2A26] border border-[#F8F1E7]/20 hover:border-[#D08A44] hover:text-[#D08A44] text-[#F8F1E7] rounded-none transition-all duration-300">
+                <Youtube className="h-4 w-4" aria-hidden="true" />
               </a>
             </div>
           </div>
@@ -94,39 +96,39 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
             </h3>
             <ul className="space-y-2 text-xs font-medium uppercase tracking-wider text-[#F8F1E7]/70">
               <li>
-                <button onClick={() => onNavigate('home')} className="hover:text-[#7E4015] transition-all duration-200">
+                <a href={pathForView('home')} onClick={(event) => { event.preventDefault(); onNavigate('home'); }} className="min-h-11 inline-flex items-center hover:text-[#D08A44] transition-all duration-200">
                   {t.nav_home}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('about')} className="hover:text-[#7E4015] transition-all duration-200">
+                <a href={pathForView('about')} onClick={(event) => { event.preventDefault(); onNavigate('about'); }} className="min-h-11 inline-flex items-center hover:text-[#D08A44] transition-all duration-200">
                   {t.nav_about}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('products')} className="hover:text-[#7E4015] transition-all duration-200">
+                <a href={pathForView('products')} onClick={(event) => { event.preventDefault(); onNavigate('products'); }} className="min-h-11 inline-flex items-center hover:text-[#D08A44] transition-all duration-200">
                   {t.nav_products}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('services')} className="hover:text-[#7E4015] transition-all duration-200">
+                <a href={pathForView('services')} onClick={(event) => { event.preventDefault(); onNavigate('services'); }} className="min-h-11 inline-flex items-center hover:text-[#D08A44] transition-all duration-200">
                   {t.nav_services}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('news')} className="hover:text-[#7E4015] transition-all duration-200">
+                <a href={pathForView('news')} onClick={(event) => { event.preventDefault(); onNavigate('news'); }} className="min-h-11 inline-flex items-center hover:text-[#D08A44] transition-all duration-200">
                   {t.nav_news}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('gallery')} className="hover:text-[#7E4015] transition-all duration-200">
+                <a href={pathForView('gallery')} onClick={(event) => { event.preventDefault(); onNavigate('gallery'); }} className="min-h-11 inline-flex items-center hover:text-[#D08A44] transition-all duration-200">
                   {t.nav_gallery}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('faq')} className="hover:text-[#7E4015] transition-all duration-200">
+                <a href={pathForView('faq')} onClick={(event) => { event.preventDefault(); onNavigate('faq'); }} className="min-h-11 inline-flex items-center hover:text-[#D08A44] transition-all duration-200">
                   {t.nav_faq}
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -161,6 +163,7 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
               {t.footer_newsletter_desc}
             </p>
             <form onSubmit={handleSubmit} className="space-y-2" id="footer-newsletter-form">
+              <label htmlFor="footer-email-input" className="sr-only">{t.footer_newsletter_title}</label>
               <div className="relative">
                 <input
                   type="email"
@@ -174,17 +177,18 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
                 <button
                   type="submit"
                   id="footer-email-submit"
-                  className="absolute right-1.5 top-1.5 p-2 bg-[#7E4015] hover:bg-[#2D2A26] text-[#F8F1E7] border border-[#F8F1E7]/10 rounded-none transition-all"
+                  aria-label="Subscribe to newsletter"
+                  className="absolute right-0 top-0 min-h-11 min-w-11 inline-flex items-center justify-center p-2 bg-[#7E4015] hover:bg-[#A45C20] text-[#F8F1E7] border border-[#F8F1E7]/20 rounded-none transition-all"
                   disabled={status === 'loading'}
                 >
                   <Send className="h-3.5 w-3.5" />
                 </button>
               </div>
               {status === 'success' && (
-                <p className="text-[10px] text-green-400 font-semibold tracking-wider uppercase">✓ {t.newsletter_success}</p>
+                <p role="status" className="text-[10px] text-green-300 font-semibold tracking-wider uppercase">✓ {t.newsletter_success}</p>
               )}
               {status === 'error' && (
-                <p className="text-[10px] text-red-400 font-semibold tracking-wider uppercase">✗ Enter a valid email address.</p>
+                <p role="alert" className="text-[10px] text-red-300 font-semibold tracking-wider uppercase">✗ Enter a valid email address.</p>
               )}
             </form>
           </div>
@@ -199,15 +203,16 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
             <span>Rainforest Alliance</span>
           </div>
           <div className="flex items-center gap-4">
-            <span>© 2026 Konjo Coffee Export PLC</span>
+            <span>© 2026 Konjo Coffee PLC With BlueCode Technology solution</span>
             <span className="opacity-20">|</span>
-            <button 
+            <a
+              href="/admin"
               id="tiny-admin-login-link"
-              onClick={() => onNavigate('admin')} 
-              className="font-bold text-[#7E4015] hover:text-[#F8F1E7] transition-all"
+              onClick={(event) => { event.preventDefault(); onNavigate('admin'); }}
+              className="min-h-11 inline-flex items-center font-bold text-[#D08A44] hover:text-[#F8F1E7] transition-all"
             >
               Admin Portal
-            </button>
+            </a>
           </div>
         </div>
       </div>

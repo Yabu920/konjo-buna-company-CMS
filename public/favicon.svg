@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Konjo Buna">
+  <rect width="64" height="64" rx="14" fill="#7E4015"/>
+  <path d="M43 10C25 13 14 24 14 39c0 9 7 15 16 15 17 0 23-19 22-39-6 11-14 18-26 25 7-8 12-17 17-30Z" fill="#F8F1E7"/>
+  <path d="M22 47c8-8 14-17 22-29" fill="none" stroke="#2D2A26" stroke-width="3" stroke-linecap="round"/>
+</svg>

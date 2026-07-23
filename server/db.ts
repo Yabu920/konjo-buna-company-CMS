@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import { safeLogError } from './safe-log.js';
 
 // Types for our bilingual relational schema
 export interface Admin {
@@ -154,33 +156,46 @@ export interface DatabaseSchema {
   site_settings: SiteSettings[];
 }
 
-const DB_FILE = path.join(process.cwd(), 'database.json');
+const configuredJsonFile = process.env.JSON_DB_FILE?.trim() || 'database.local.json';
+const DB_FILE = path.isAbsolute(configuredJsonFile)
+  ? path.normalize(configuredJsonFile)
+  : path.resolve(process.cwd(), configuredJsonFile);
+const JSON_SEED_FILE = path.resolve(process.cwd(), 'database.json');
 
-// Helper to hash passwords using native pbkdf2
-export function hashPassword(password: string): string {
-  const salt = 'konjo_coffee_salt_2026';
-  return crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-}
-
-export function verifyPassword(password: string, hash: string): boolean {
-  if (!/^[a-f0-9]{128}$/i.test(hash)) return false;
-  const actual = Buffer.from(hashPassword(password), 'hex');
-  const expected = Buffer.from(hash, 'hex');
-  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+function localBootstrapAdmin(): Admin | undefined {
+  const username = process.env.JSON_BOOTSTRAP_USERNAME?.trim();
+  const password = process.env.JSON_BOOTSTRAP_PASSWORD;
+  const email = process.env.JSON_BOOTSTRAP_EMAIL?.trim().toLowerCase();
+  const name = process.env.JSON_BOOTSTRAP_NAME?.trim();
+  const configured = Boolean(username || password || email || name);
+  if (!configured) return undefined;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JSON administrator bootstrap is not allowed in production.');
+  }
+  if (!username || !password || !email || !name) {
+    throw new Error('JSON bootstrap requires username, password, email, and name environment variables.');
+  }
+  if (password.length < 12
+      || password.toLowerCase().includes(username.toLowerCase())
+      || /^(admin|password|konjo|coffee)/i.test(password)) {
+    throw new Error('JSON bootstrap password does not meet the local security requirements.');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('JSON bootstrap email is invalid.');
+  }
+  return {
+    id: `admin-${crypto.randomUUID()}`,
+    username,
+    email,
+    passwordHash: bcrypt.hashSync(password, 12),
+    name,
+    role: 'Superadmin',
+  };
 }
 
 // Default initial seed data (Bilingual premium Ethiopian export details)
 const INITIAL_DATABASE: DatabaseSchema = {
-  admins: [
-    {
-      id: 'admin-1',
-      username: 'admin',
-      email: null,
-      passwordHash: hashPassword('admin123'), // Legacy JSON bootstrap account; rotate this password after setup.
-      name: 'Konjo Export Administrator',
-      role: 'Superadmin'
-    }
-  ],
+  admins: [],
   admin_sessions: [],
   password_reset_tokens: [],
   product_categories: [
@@ -523,7 +538,7 @@ const INITIAL_DATABASE: DatabaseSchema = {
   ]
 };
 
-class DBManager {
+export class DBManager {
   private data: DatabaseSchema;
 
   constructor() {
@@ -533,8 +548,11 @@ class DBManager {
 
   private load() {
     try {
-      if (fs.existsSync(DB_FILE)) {
-        const fileContent = fs.readFileSync(DB_FILE, 'utf-8');
+      const sourceFile = fs.existsSync(DB_FILE)
+        ? DB_FILE
+        : DB_FILE !== JSON_SEED_FILE && fs.existsSync(JSON_SEED_FILE) ? JSON_SEED_FILE : undefined;
+      if (sourceFile) {
+        const fileContent = fs.readFileSync(sourceFile, 'utf-8');
         const parsed = JSON.parse(fileContent) as Partial<DatabaseSchema> & { admins?: Array<Admin & { email?: string | null }> };
         this.data = {
           ...INITIAL_DATABASE,
@@ -546,20 +564,30 @@ class DBManager {
           admin_sessions: parsed.admin_sessions ?? [],
           password_reset_tokens: parsed.password_reset_tokens ?? [],
         };
+        if (sourceFile !== DB_FILE) this.save();
       } else {
         this.save();
       }
     } catch (err) {
-      console.error('Error loading database.json, using defaults:', err);
+      safeLogError('Unable to load the local JSON database; using sanitized defaults.', err);
       this.data = { ...INITIAL_DATABASE };
     }
+    this.bootstrapLocalAdmin();
+  }
+
+  private bootstrapLocalAdmin() {
+    if (this.data.admins.length > 0) return;
+    const bootstrap = localBootstrapAdmin();
+    if (!bootstrap) return;
+    this.data.admins = [bootstrap];
+    this.save();
   }
 
   private save() {
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
     } catch (err) {
-      console.error('Error saving database.json:', err);
+      safeLogError('Unable to save the local JSON database.', err);
     }
   }
 

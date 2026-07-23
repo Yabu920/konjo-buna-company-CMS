@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { verifyPassword as verifyLegacyPassword } from './db.js';
+import { verifyLegacyPassword } from './legacy-password.js';
 
 export const MIN_ADMIN_PASSWORD_LENGTH = 8;
 const BCRYPT_ROUNDS = 12;

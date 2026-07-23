@@ -15,3 +15,40 @@
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.deferred-home-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
+:focus-visible {
+  outline: 3px solid #d08a44;
+  outline-offset: 3px;
+}
+
+button,
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+select {
+  min-height: 44px;
+}
+
+#admin-workspace {
+  overflow-x: hidden;
+}
+
+#admin-workspace table {
+  min-width: 44rem;
+}
+
+#admin-workspace .overflow-hidden:has(> table) {
+  overflow-x: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

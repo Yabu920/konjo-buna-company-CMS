@@ -2,3 +2,21 @@ node_modules/
 dist/
 .env
 generated/
+database.local.json
+
+# Keep existing site images visible to Git, but ignore future runtime uploads.
+uploads/*
+!uploads/1784150446789-778740f1-0a4b-4bca-9e20-184ce6f43ef1.jpg
+!uploads/1784150958654-22b2f9c0-7370-4ce8-8614-e98e8a01152e.jpg
+!uploads/1784151006392-45c298e5-ce36-46bc-8dcf-34b2f9c0a8a4.jpg
+!uploads/1784151073317-1482920d-581a-46ec-ad1d-ee9ad614bbed.png
+!uploads/1784151110493-dbdc3662-566b-4258-9064-b5e742aa0478.jpg
+!uploads/1784151277536-cf8c4027-07cf-4317-99f3-c46ed6e3bf56.jpg
+!uploads/1784151325208-d7079c6c-a3c6-4e9d-96ac-3cb5ddb8d532.jpg
+!uploads/1784151379289-dd6b1c1d-c6f5-4c6f-912b-b71ccc053cca.jpg
+!uploads/1784151509873-cfb2c836-701a-4bce-a703-52bb81d8a92b.png
+!uploads/1784151616779-4bad741e-95f1-4688-b1c6-e736ec620a83.png
+!uploads/1784151709325-266614ba-d2c2-4e3a-84b6-357d8ccc3e01.jpg
+!uploads/1784151776258-cb435a67-8adc-4ee2-8b6c-d9e248f2f838.jpg
+!uploads/1784151846739-602d3311-f4b2-4831-8be2-b991c28750a3.jpg
+!uploads/1784151876036-549695a5-722d-4829-90f7-ff640caaca9f.jpg
