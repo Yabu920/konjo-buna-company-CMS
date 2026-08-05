@@ -37,7 +37,7 @@ export default function Header({
   const siteTitleSetting = settings?.find(s => s.key === 'site_title');
   const siteTitle = lang === 'en' 
     ? (siteTitleSetting?.value_en || 'KONJO BUNA') 
-    : (siteTitleSetting?.value_am || 'ኮንጆ ቡና');
+    : (siteTitleSetting?.value_am || 'ቆንጆ ቡና');
 
   const handleNav = (view: ViewType) => {
     onNavigate(view);
@@ -64,35 +64,34 @@ export default function Header({
 
   return (
     <header className="sticky top-0 z-50 bg-[#7E4015] border-b border-[#2D2A26]/10 text-[#2D2A26] transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-24">
+      <div className="max-w-[1800px] mx-auto px-4 lg:px-5 xl:px-7">
+        <div className="flex items-center h-20 gap-3 xl:gap-5">
           
           {/* Logo & Brand */}
           <a
             href="/"
             onClick={(event) => { event.preventDefault(); handleNav('home'); }}
-            className="flex items-center gap-3 group min-h-11"
+            className="flex shrink-0 items-center gap-3 group min-h-11"
             id="header-brand-logo"
           >
-            <div className="w-24 h-22 bg-[#7E4015] rounded-none flex items-center justify-center transition-transform duration-500 group-hover:scale-105 shadow-md">
+            <div className="w-20 h-20 bg-[#7E4015] rounded-none flex items-center justify-center transition-transform duration-500 group-hover:scale-105 shadow-md">
               <img
                 src={logoImage}
-                width="96"
-                height="88"
+                width="80"
+                height="80"
                 alt="Konjo Buna logo"
                 className="w-full h-full rounded-none object-cover"
               />
             </div>
-            <div>
-              <span className="font-serif text-2xl lg:mr-6 tracking-tight leading-none font-bold text-white group-hover:text-[#2D2A26] transition-colors uppercase">
+            <div className="hidden min-[1536px]:block">
+              <span className="font-serif text-xl tracking-tight leading-none font-bold text-white group-hover:text-[#2D2A26] transition-colors uppercase whitespace-nowrap">
                 {siteTitle}
-                {/* <span className="font-sans text-[9px] font-bold tracking-[0.25em] text-[#F8F1E7] block mt-1">COFFEE EXPORT</span> */}
               </span>
             </div>
           </a>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
+          <nav id="desktop-navigation" className="hidden lg:flex min-w-0 flex-1 items-center justify-center gap-1.5 xl:gap-3 2xl:gap-5">
             {navItems.map((item) => {
               const isActive = currentView === item.view || (item.view === 'products' && currentView === 'product-detail');
               return (
@@ -102,7 +101,7 @@ export default function Header({
                   href={pathForView(item.view)}
                   onClick={(event) => { event.preventDefault(); handleNav(item.view); }}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`min-h-11 inline-flex items-center py-1 text-xs font-semibold tracking-widest uppercase transition-all relative ${
+                  className={`min-h-11 inline-flex items-center whitespace-nowrap px-1 py-1 text-[clamp(0.72rem,0.68rem+0.08vw,0.8rem)] font-semibold tracking-wide transition-all relative ${
                     isActive 
                       ? 'text-[#ffffff] font-bold border-b-4 border-[#2D2A26]' 
                       : 'text-[#ffffff] hover:text-[#2D2A26]'
@@ -118,12 +117,12 @@ export default function Header({
           </nav>
 
           {/* Controls & Tools */}
-          <div className="hidden sm:flex items-center gap-6">
+          <div id="header-controls" className="hidden lg:flex shrink-0 items-center gap-2 xl:gap-3">
             
             {/* Search Toggle */}
-            <div className="relative flex items-center">
+            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
               {showHeaderSearch ? (
-                <div className="flex items-center gap-2 bg-[#F8F1E7] border border-[#2D2A26]/20 rounded-none px-3 py-1.5 shadow-sm transition-all duration-300 w-64 animate-fade-in">
+                <div className="absolute right-0 top-0 z-20 flex h-11 w-64 items-center gap-2 bg-[#F8F1E7] border border-[#2D2A26]/20 rounded-none px-3 shadow-lg transition-all duration-300 animate-fade-in">
                   <Search className="h-4 w-4 text-[#7E4015]" />
                   <input
                     type="text"
@@ -150,7 +149,7 @@ export default function Header({
                   type="button"
                   id="search-toggle-btn"
                   onClick={() => setShowHeaderSearch(true)}
-                  className="p-2 text-[#2D2A26]/70 hover:text-[#2D2A26] hover:bg-[#2D2A26]/5 rounded-full transition-all"
+                  className="min-h-11 min-w-11 p-2 text-white hover:text-[#2D2A26] hover:bg-white/15 rounded-full transition-all"
                   aria-label="Search website"
                 >
                   <Search className="h-5 w-5" />
@@ -159,7 +158,7 @@ export default function Header({
             </div>
 
             {/* Language Selection preference toggle - Pill Styled */}
-            <div className="flex items-center bg-[#2D2A26] text-[#F8F1E7] px-4 py-2 rounded-full shadow-md font-mono select-none">
+            <div className="flex shrink-0 items-center bg-[#2D2A26] text-[#F8F1E7] px-3 py-2 rounded-full shadow-md font-mono select-none">
               <button
                 type="button"
                 id="lang-btn-en"
@@ -174,7 +173,7 @@ export default function Header({
               >
                 EN
               </button>
-              <div className="w-px h-3 bg-[#F8F1E7]/30 mx-3"></div>
+              <div className="w-px h-3 bg-[#F8F1E7]/30 mx-2"></div>
               <button
                 type="button"
                 id="lang-btn-am"
@@ -193,12 +192,12 @@ export default function Header({
 
             {/* Admin Profile/Logout Link */}
             {isAdminLoggedIn ? (
-              <div className="flex items-center gap-3">
+              <div className="flex shrink-0 items-center gap-1.5 xl:gap-2">
                 <button
                   type="button"
                   id="admin-dashboard-btn"
                   onClick={() => handleNav('admin')}
-                  className="px-4 py-2 text-[10px] font-bold tracking-wider uppercase border border-[#2D2A26] bg-[#2D2A26] text-[#F8F1E7] hover:bg-transparent hover:text-[#2D2A26] transition-all"
+                  className="min-h-11 whitespace-nowrap px-2.5 py-2 text-[10px] font-bold tracking-wide uppercase border border-[#2D2A26] bg-[#2D2A26] text-[#F8F1E7] hover:bg-transparent hover:text-[#2D2A26] transition-all"
                 >
                   CMS Panel
                 </button>
@@ -206,7 +205,7 @@ export default function Header({
                   type="button"
                   id="admin-logout-btn"
                   onClick={onLogout}
-                  className="px-2 py-1 text-[10px] font-bold tracking-wider uppercase text-red-600 hover:text-red-800 transition-all"
+                  className="min-h-11 whitespace-nowrap px-2 py-1 text-[10px] font-bold tracking-wide uppercase text-white hover:text-[#2D2A26] transition-all"
                 >
                   Logout
                 </button>
@@ -277,7 +276,7 @@ export default function Header({
                   href={pathForView(item.view)}
                   onClick={(event) => { event.preventDefault(); handleNav(item.view); }}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`w-full min-h-11 flex items-center text-left px-4 py-2.5 text-xs font-bold tracking-widest uppercase transition-all ${
+                  className={`w-full min-h-11 flex items-center text-left px-4 py-2.5 text-sm font-bold tracking-wide transition-all ${
                     isActive 
                       ? 'bg-[#7E4015] text-[#F8F1E7] shadow-md' 
                       : 'text-[#2D2A26]/80 hover:bg-[#2D2A26]/5'

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Lock, LayoutDashboard, Coffee, Layers, Newspaper, Image, 
   Mail, Users, Settings, Plus, Edit2, Trash2, Eye, CheckCircle, 
-  X, Save, FileText, Globe, Key, ShieldCheck
+  X, Save, FileText, Globe, Key, ShieldCheck, FileVideo
 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
+import GalleryMediaUpload from './GalleryMediaUpload.tsx';
 import { csrfHeaders } from '../auth-client.ts';
 import { 
   Product, ProductCategory, Service, NewsPost, 
@@ -134,6 +135,8 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
   const [currentEditItem, setCurrentEditItem] = useState<any | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [viewInquiryDetail, setViewInquiryDetail] = useState<Inquiry | null>(null);
+  const [galleryUploadBusy, setGalleryUploadBusy] = useState(false);
+  const [gallerySaving, setGallerySaving] = useState(false);
 
   // Notification feedback
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -470,6 +473,10 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
   // Gallery CRUD Submission
   const handleGallerySave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (galleryUploadBusy || gallerySaving) {
+      showFeedback('error', 'Wait for the current upload or save to finish.');
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     const body = {
       title_en: formData.get('title_en') as string,
@@ -479,12 +486,20 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
       description_en: formData.get('description_en') as string,
       description_am: formData.get('description_am') as string,
       image_url: formData.get('image_url') as string,
+      media_type: formData.get('media_type') as 'image' | 'video',
+      poster_url: formData.get('poster_url') as string,
     };
 
     const isEdit = currentEditItem && currentEditItem.id;
     const url = isEdit ? `/api/gallery/${currentEditItem.id}` : '/api/gallery';
     const method = isEdit ? 'PUT' : 'POST';
 
+    if (!body.image_url) {
+      showFeedback('error', `Upload a ${body.media_type === 'video' ? 'video' : 'image'} before saving.`);
+      return;
+    }
+
+    setGallerySaving(true);
     try {
       const res = await fetch(url, {
         method,
@@ -503,6 +518,8 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
       }
     } catch {
       showFeedback('error', 'Server error saving media.');
+    } finally {
+      setGallerySaving(false);
     }
   };
 
@@ -815,7 +832,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
           {[
             { id: 'products', label: 'Coffee Products', icon: Coffee },
             { id: 'categories', label: 'Product Categories', icon: Layers },
-            { id: 'services', label: 'Export Services', icon: FileText },
+            { id: 'services', label: 'Services', icon: FileText },
             { id: 'news', label: 'News & Reports', icon: Newspaper },
             { id: 'gallery', label: 'Media Gallery', icon: Image },
             { id: 'inquiries', label: 'Inquiries Received', count: inquiries.filter(i=>i.status==='new').length, icon: Mail },
@@ -1705,10 +1722,13 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-[#2D2A26]/80">Gallery Image</label>
-                  <ImageUpload name="image_url" initialUrl={currentEditItem?.image_url || null} />
-                </div>
+                <GalleryMediaUpload
+                  key={currentEditItem?.id || 'new-gallery-media'}
+                  initialMediaType={currentEditItem?.media_type || 'image'}
+                  initialUrl={currentEditItem?.image_url || null}
+                  initialPosterUrl={currentEditItem?.poster_url || null}
+                  onBusyChange={setGalleryUploadBusy}
+                />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#2D2A26]/80">Title (English)</label>
@@ -1749,7 +1769,9 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                 </div>
               </div>
               <div className="flex gap-4">
-                <button type="submit" className="px-6 py-2.5 bg-[#7E4015] text-[#F8F1E7] font-semibold rounded-xl text-sm">Save Asset</button>
+                <button type="submit" disabled={galleryUploadBusy || gallerySaving} className="px-6 py-2.5 bg-[#7E4015] text-[#F8F1E7] font-semibold rounded-xl text-sm disabled:cursor-not-allowed disabled:opacity-50">
+                  {galleryUploadBusy ? 'Uploading…' : gallerySaving ? 'Saving…' : 'Save '}
+                </button>
                 <button type="button" onClick={() => setIsFormOpen(false)} className="px-6 py-2 bg-gray-100 text-gray-700 font-semibold rounded-xl text-sm">Cancel</button>
               </div>
             </form>
@@ -1758,8 +1780,19 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
               {gallery.map((g) => (
                 <div key={g.id} className="bg-white border border-[#7E4015]/10 rounded-2xl overflow-hidden shadow-md flex flex-col">
                   <div className="relative h-44 bg-gray-100">
-                    <img src={g.image_url} width="500" height="500" loading="lazy" className="w-full h-full object-cover" alt={g.title_en} />
+                    {g.media_type === 'video' ? (
+                      g.poster_url ? (
+                        <img src={g.poster_url} width="500" height="500" loading="lazy" className="w-full h-full object-cover" alt={`${g.title_en} video poster`} />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-[#2D2A26] text-[#F8F1E7]" aria-label={`${g.title_en} video`}>
+                          <FileVideo className="h-12 w-12" aria-hidden="true" />
+                        </div>
+                      )
+                    ) : (
+                      <img src={g.image_url} width="500" height="500" loading="lazy" className="w-full h-full object-cover" alt={g.title_en} />
+                    )}
                     <span className="absolute top-2 left-2 bg-black/75 backdrop-blur-md text-white text-[10px] px-2.5 py-1 rounded-lg border border-white/10">{g.category_en}</span>
+                    <span className="absolute top-2 right-2 bg-[#7E4015] text-white text-[10px] px-2.5 py-1 rounded-lg">{g.media_type === 'video' ? 'VIDEO' : 'IMAGE'}</span>
                   </div>
                   <div className="p-4 flex-1 flex flex-col justify-between">
                     <div>

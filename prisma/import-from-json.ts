@@ -304,6 +304,8 @@ async function importToMySql(data: PreparedDatabase): Promise<Counts> {
         const record = {
           id: asString(item.id), category_en: asString(item.category_en), category_am: asString(item.category_am),
           title_en: asString(item.title_en), title_am: asString(item.title_am), image_url: asString(item.image_url),
+          media_type: item.media_type === 'video' ? 'video' : 'image',
+          poster_url: item.poster_url == null || asString(item.poster_url).trim() === '' ? null : asString(item.poster_url),
           description_en: asString(item.description_en), description_am: asString(item.description_am),
         };
         await tx.galleryImage.upsert({ where: { id: record.id }, create: record, update: record });

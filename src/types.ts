@@ -72,6 +72,8 @@ export interface GalleryImage {
   title_en: string;
   title_am: string;
   image_url: string;
+  media_type: 'image' | 'video';
+  poster_url: string | null;
   description_en: string;
   description_am: string;
 }

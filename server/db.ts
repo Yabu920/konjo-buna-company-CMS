@@ -110,6 +110,8 @@ export interface GalleryImage {
   title_en: string;
   title_am: string;
   image_url: string;
+  media_type: 'image' | 'video';
+  poster_url: string | null;
   description_en: string;
   description_am: string;
 }
@@ -311,7 +313,7 @@ const INITIAL_DATABASE: DatabaseSchema = {
       category_id: 'cat-roasted',
       slug: 'konjo-espresso-roast',
       title_en: 'Konjo Dark Espresso Roast',
-      title_am: 'ኮንጆ የከረረ ኤስፕሬሶ ቁል',
+      title_am: 'ቆንጆ የከረረ ኤስፕሬሶ ቁል',
       description_en: 'A bold, sophisticated blend of Sidamo and Limu. Roasted slow and dark to draw rich molasses and roasted cacao profiles.',
       description_am: 'የሲዳሞ እና የሊሙ ደማቅና የተራቀቀ ውህደት። የበለጸገ ሞላሰስ እና የተቆላ ካካዎ ጣዕምን ለመሳብ በዝግታና በከረረ መልኩ የተቆላ።',
       content_en: 'Crafted for commercial espresso machines and coffee lovers who appreciate deep, robust body. This roast showcases how high-density Ethiopian highland beans handle dark roasts without losing their intrinsic sweet stone fruit undertones.',
@@ -370,7 +372,7 @@ const INITIAL_DATABASE: DatabaseSchema = {
       description_en: 'We operate state-of-the-art wet mills and raised drying beds across Sidamo and Yirgacheffe, maintaining direct control over honey, washed, and natural fermentation.',
       description_am: 'በሲዳሞ እና ይርጋጨፌ ዘመናዊ የታጠቡ ወፍጮዎችን እና ከፍ ያሉ ማድረቂያ አልጋዎችን እናሰራለን ፣ ማር ፣ የታጠበ እና ተፈጥሯዊ ፍላትን በቀጥታ እንቆጣጠራለን።',
       content_en: 'Quality begins at the station. Konjo Coffee operates eight washing and dry milling facilities in Ethiopia\'s finest coffee growing sectors. Our facilities utilize eco-friendly pulpers, recirculated pure spring water for fermentation, and meticulously trained sorters who inspect dried parchment coffee to meet specialty Grade 1 and Grade 2 parameters before shipping.',
-      content_am: 'ጥራት ከጣቢያው ይጀምራል። ኮንጆ ቡና በኢትዮጵያ ምርጥ የቡና ልማት ዘርፎች ስምንት የማጠብና ደረቅ መፍጫ ተቋማትን ያንቀሳቅሳል። የእኛ ተቋማት ለአካባቢ ተስማሚ የሆኑ ጥራጥሬዎችን፣ ለፍላት የሚሆን ንጹህ የምንጭ ውሃ እና የተዘጋጁ ልዩ ደረጃ 1 እና ደረጃ 2 መለኪያዎችን ለማሟላት የደረቀ የፓርችመንት ቡናን የሚመረምሩ በጥንቃቄ የሰለጠኑ ደጋፊዎችን ይጠቀማሉ።',
+      content_am: 'ጥራት ከጣቢያው ይጀምራል። ቆንጆ ቡና በኢትዮጵያ ምርጥ የቡና ልማት ዘርፎች ስምንት የማጠብና ደረቅ መፍጫ ተቋማትን ያንቀሳቅሳል። የእኛ ተቋማት ለአካባቢ ተስማሚ የሆኑ ጥራጥሬዎችን፣ ለፍላት የሚሆን ንጹህ የምንጭ ውሃ እና የተዘጋጁ ልዩ ደረጃ 1 እና ደረጃ 2 መለኪያዎችን ለማሟላት የደረቀ የፓርችመንት ቡናን የሚመረምሩ በጥንቃቄ የሰለጠኑ ደጋፊዎችን ይጠቀማሉ።',
       icon_name: 'Layers',
       image_url: 'https://images.unsplash.com/photo-1524350876685-274059332603?q=80&w=800'
     },
@@ -422,9 +424,9 @@ const INITIAL_DATABASE: DatabaseSchema = {
       title_en: 'Empowering Farmers: Sustainable Washing Stations',
       title_am: 'ገበሬዎችን ማጎልበት፡ ዘላቂ የማጠብ ጣቢያዎች',
       excerpt_en: 'Konjo Buna introduces advanced water-recirculation systems to protect rivers in Sidamo from acidic processing runoff while increasing farmer premiums by 18%.',
-      excerpt_am: 'ኮንጆ ቡና በሲዳሞ የሚገኙ ወንዞችን ከአሲዳማ ፈሳሾች ለመጠበቅ የላቀ የውሃ መልሶ ማሰራጫ ዘዴዎችን ያስተዋወቀ ሲሆን የገበሬዎችን ተጠቃሚነት በ18 በመቶ አሳድጓል።',
+      excerpt_am: 'ቆንጆ ቡና በሲዳሞ የሚገኙ ወንዞችን ከአሲዳማ ፈሳሾች ለመጠበቅ የላቀ የውሃ መልሶ ማሰራጫ ዘዴዎችን ያስተዋወቀ ሲሆን የገበሬዎችን ተጠቃሚነት በ18 በመቶ አሳድጓል።',
       content_en: 'As part of our commitment to eco-friendly export and environmental stewardship, Konjo Coffee has successfully rolled out modern recycling pulp machines in our three largest washing stations. These machines reduce processing water intake by 70% and filter organic waste into fertile agricultural compost, which is distributed back to local smallholders free of charge. Simultaneously, our direct trade premium payout was elevated to 18% above fair trade standards to safeguard farming households in these inflationary times.',
-      content_am: 'ለአካባቢ ተስማሚ የወጪ ንግድ እና ለአካባቢ ጥበቃ ያለንን ቁርጠኝነት አካል አድርጎ ኮንጆ ቡና በሶስቱ ትላልቅ ማጠቢያ ጣቢያዎቻችን ዘመናዊ የውሃ መልሶ ማሰራጫ ማሽኖችን በተሳካ ሁኔታ አስገብቷል። እነዚህ ማሽኖች ለማቀነባበር የሚወስደውን ውሃ በ70% የሚቀንሱ ሲሆን ኦርጋኒክ ቆሻሻን ለአካባቢው አነስተኛ ገበሬዎች ከክፍያ ነፃ ወደሚከፋፈል ለም ማዳበሪያነት ይቀይራሉ። በተመሳሳይ በነዚህ የዋጋ ንረት ወቅቶች የእርሻ አባወራዎችን ለመጠበቅ የቀጥታ የንግድ ክፍያችን ከፍትሃዊ የንግድ መስፈርቶች 18 በመቶ ከፍ እንዲል ተደርጓል።',
+      content_am: 'ለአካባቢ ተስማሚ የወጪ ንግድ እና ለአካባቢ ጥበቃ ያለንን ቁርጠኝነት አካል አድርጎ ቆንጆ ቡና በሶስቱ ትላልቅ ማጠቢያ ጣቢያዎቻችን ዘመናዊ የውሃ መልሶ ማሰራጫ ማሽኖችን በተሳካ ሁኔታ አስገብቷል። እነዚህ ማሽኖች ለማቀነባበር የሚወስደውን ውሃ በ70% የሚቀንሱ ሲሆን ኦርጋኒክ ቆሻሻን ለአካባቢው አነስተኛ ገበሬዎች ከክፍያ ነፃ ወደሚከፋፈል ለም ማዳበሪያነት ይቀይራሉ። በተመሳሳይ በነዚህ የዋጋ ንረት ወቅቶች የእርሻ አባወራዎችን ለመጠበቅ የቀጥታ የንግድ ክፍያችን ከፍትሃዊ የንግድ መስፈርቶች 18 በመቶ ከፍ እንዲል ተደርጓል።',
       category_en: 'Sustainability',
       category_am: 'ዘላቂነት',
       image_url: 'https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=800',
@@ -441,6 +443,8 @@ const INITIAL_DATABASE: DatabaseSchema = {
       title_en: 'Highland Forest Arabica Trees',
       title_am: 'የደጋ ጫካ አረቢካ ዛፎች',
       image_url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800',
+      media_type: 'image',
+      poster_url: null,
       description_en: 'Shade-grown coffee growing naturally under indigenous forest canopies in Guji at 2,100 meters above sea level.',
       description_am: 'በባህላዊ የደን ጥላ ስር በጉጂ ዞን በባህር ጠለል በላይ በ2,100 ሜትር ከፍታ ላይ በደህንነት የሚበቅል ቡና።'
     },
@@ -451,6 +455,8 @@ const INITIAL_DATABASE: DatabaseSchema = {
       title_en: 'Raised Drying Beds in Gedeo',
       title_am: 'በጌዴኦ ላይ ከፍ ያሉ ማድረቂያ አልጋዎች',
       image_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800',
+      media_type: 'image',
+      poster_url: null,
       description_en: 'Specialty arabica parchment beans undergoing natural solar drying with consistent hand rotation on elevated bamboo screens.',
       description_am: 'በቀርከሃ አልጋዎች ላይ የማያቋርጥ በእጅ ማዞር የሚደረግላቸው ልዩ የአረቢካ የፓርችመንት ፍሬዎች በፀሐይ መድረቅ ላይ።'
     },
@@ -461,6 +467,8 @@ const INITIAL_DATABASE: DatabaseSchema = {
       title_en: 'Traditional Coffee Roast & Brew',
       title_am: 'ባህላዊ የቡና አቆላል እና ፍላት',
       image_url: 'https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?q=80&w=800',
+      media_type: 'image',
+      poster_url: null,
       description_en: 'Celebrating the legendary heritage of Buna through the traditional roasting pan, incense, and clay Jebena pot.',
       description_am: 'የቡናን ታሪካዊ ቅርስ በባህላዊ መቁያ ምጣድ፣ እጣን እና በሸክላ ጀበና በማክበር ስነ-ስርዓት።'
     },
@@ -471,6 +479,8 @@ const INITIAL_DATABASE: DatabaseSchema = {
       title_en: 'Stenciled Export Jute Bags',
       title_am: 'የታተሙ የኤክስፖርት የጁት ከረጢቶች',
       image_url: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=800',
+      media_type: 'image',
+      poster_url: null,
       description_en: 'Freshly packed specialty green coffee marked with plantation trace coordinates, ready for shipping container sealing.',
       description_am: 'የእርሻ መከታተያ መጋጠሚያዎች ምልክት የተደረገባቸው ትኩስ የታሸጉ ልዩ ጥሬ ቡናዎች ለኮንቴይነር ዝግጁ ሆነው።'
     }
@@ -925,13 +935,19 @@ export class DBManager {
   // Gallery CRUD
   getGalleryImages(): GalleryImage[] {
     this.load();
-    return this.data.gallery_images;
+    return this.data.gallery_images.map((image) => ({
+      ...image,
+      media_type: image.media_type === 'video' ? 'video' : 'image',
+      poster_url: image.poster_url ?? null,
+    }));
   }
 
   createGalleryImage(img: Omit<GalleryImage, 'id'>): GalleryImage {
     this.load();
     const newImg: GalleryImage = {
       ...img,
+      media_type: img.media_type === 'video' ? 'video' : 'image',
+      poster_url: img.poster_url ?? null,
       id: 'gal-' + crypto.randomUUID()
     };
     this.data.gallery_images.push(newImg);
@@ -943,7 +959,12 @@ export class DBManager {
     this.load();
     const idx = this.data.gallery_images.findIndex(g => g.id === id);
     if (idx === -1) return undefined;
-    this.data.gallery_images[idx] = { ...this.data.gallery_images[idx], ...updates };
+    this.data.gallery_images[idx] = {
+      ...this.data.gallery_images[idx],
+      ...updates,
+      media_type: updates.media_type === 'video' ? 'video' : (updates.media_type ?? this.data.gallery_images[idx].media_type ?? 'image'),
+      poster_url: updates.poster_url === undefined ? (this.data.gallery_images[idx].poster_url ?? null) : updates.poster_url,
+    };
     this.save();
     return this.data.gallery_images[idx];
   }

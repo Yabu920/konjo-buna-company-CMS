@@ -12,6 +12,12 @@ import { BoundedMemoryRateLimiter, rateLimitMiddleware } from './server/rate-lim
 import { safeLogError, safeRequestContext, type RequestWithId } from './server/safe-log.js';
 import { decodeImageDataUrl, UploadValidationError } from './server/upload-validation.js';
 import {
+  streamValidatedVideo,
+  validateVideoMetadata,
+  videoUploadConfiguration,
+  VideoUploadValidationError,
+} from './server/video-upload.js';
+import {
   allowRecoveryAttempt,
   clearSessionCookies,
   clearLoginRateLimit,
@@ -59,7 +65,7 @@ const contentSecurityPolicy = [
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
-  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://maps.google.com https://www.google.com",
   "connect-src 'self'",
 ].join('; ');
 
@@ -70,8 +76,8 @@ app.use((req: RequestWithId, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Content-Security-Policy': contentSecurityPolicy,
   });
+  if (production) res.set('Content-Security-Policy', contentSecurityPolicy);
   if (hstsEnabled) res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
@@ -96,6 +102,7 @@ app.use('/api', (_req, res, next) => {
 
 // Runtime uploads may live outside the release directory on persistent storage.
 const uploads = uploadConfiguration(process.env);
+const videoUploads = videoUploadConfiguration(process.env);
 try {
   fs.mkdirSync(uploads.directory, { recursive: true, mode: 0o750 });
   fs.accessSync(uploads.directory, fs.constants.W_OK);
@@ -142,6 +149,61 @@ app.post('/api/admin/upload', requireAdmin, requireCsrf, asyncRoute(async (req, 
   } catch (error) {
     safeLogError('Unable to save uploaded image.', error, safeRequestContext(req as RequestWithId));
     res.status(500).json({ error: 'Failed to save file' });
+  }
+}));
+
+app.get('/api/admin/upload/config', requireAdmin, (_req, res) => {
+  res.json({ max_video_upload_mb: videoUploads.maxMegabytes });
+});
+
+// Video bodies are streamed directly to disk; Express's JSON parser does not buffer these MIME types.
+app.post('/api/admin/upload/video', requireAdmin, requireCsrf, asyncRoute(async (req, res) => {
+  const encodedFilename = req.get('X-File-Name');
+  if (!encodedFilename) return res.status(400).json({ error: 'X-File-Name is required' });
+
+  let filename: string;
+  try {
+    filename = decodeURIComponent(encodedFilename);
+  } catch {
+    return res.status(400).json({ error: 'X-File-Name must be valid URL-encoded text' });
+  }
+
+  let metadata: ReturnType<typeof validateVideoMetadata>;
+  try {
+    metadata = validateVideoMetadata(filename, req.get('Content-Type'));
+  } catch (error) {
+    if (error instanceof VideoUploadValidationError) return res.status(error.status).json({ error: error.message });
+    throw error;
+  }
+
+  const declaredLength = req.get('Content-Length');
+  if (declaredLength && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > videoUploads.maxBytes)) {
+    return res.status(413).json({ error: 'Video exceeds the configured upload limit.' });
+  }
+
+  const outName = `${Date.now()}-${crypto.randomUUID()}${metadata.extension}`;
+  const finalPath = path.resolve(uploads.directory, outName);
+  const temporaryPath = `${finalPath}.part`;
+  if (path.dirname(finalPath) !== uploads.directory) return res.status(400).json({ error: 'Invalid upload path' });
+
+  try {
+    const sizeBytes = await streamValidatedVideo(req, temporaryPath, metadata, videoUploads.maxBytes);
+    if (req.aborted) throw new Error('Video upload interrupted by client.');
+    await fs.promises.rename(temporaryPath, finalPath);
+    res.status(201).json({
+      url: `${uploads.publicPath}/${outName}`,
+      media_type: 'video',
+      mime: metadata.mime,
+      size_bytes: sizeBytes,
+    });
+  } catch (error) {
+    await fs.promises.unlink(temporaryPath).catch(() => undefined);
+    if (req.aborted || res.destroyed) return;
+    if (error instanceof VideoUploadValidationError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    safeLogError('Unable to save uploaded video.', error, safeRequestContext(req as RequestWithId));
+    res.status(500).json({ error: 'Failed to save video' });
   }
 }));
 
@@ -543,7 +605,7 @@ app.post('/api/news', requireAdmin, requireCsrf, asyncRoute(async (req, res) => 
     slug, title_en, title_am, excerpt_en, excerpt_am, content_en, content_am, category_en, category_am,
     image_url: image_url || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800',
     author_en: author_en || 'Konjo Press Team',
-    author_am: author_am || 'የኮንጆ ጋዜጠኛ ክፍል'
+    author_am: author_am || 'የቆንጆ ጋዜጠኛ ክፍል'
   });
   res.status(201).json(newPost);
 }));
@@ -566,20 +628,29 @@ app.get('/api/gallery', asyncRoute(async (req, res) => {
 }));
 
 app.post('/api/gallery', requireAdmin, requireCsrf, asyncRoute(async (req, res) => {
-  const { category_en, category_am, title_en, title_am, image_url, description_en, description_am } = req.body;
+  const { category_en, category_am, title_en, title_am, image_url, description_en, description_am, poster_url } = req.body;
+  const media_type = req.body.media_type ?? 'image';
+  if (media_type !== 'image' && media_type !== 'video') {
+    return res.status(400).json({ error: 'Media type must be image or video' });
+  }
   if (!image_url || !title_en || !title_am) {
-    return res.status(400).json({ error: 'Image URL and bilingual titles are required' });
+    return res.status(400).json({ error: 'Media URL and bilingual titles are required' });
   }
   const newImg = await db.createGalleryImage({
     category_en: category_en || 'General',
     category_am: category_am || 'ጠቅላላ',
-    title_en, title_am, image_url, description_en, description_am
+    title_en, title_am, image_url, media_type, poster_url: poster_url || null, description_en, description_am
   });
   res.status(201).json(newImg);
 }));
 
 app.put('/api/gallery/:id', requireAdmin, requireCsrf, asyncRoute(async (req, res) => {
-  const updated = await db.updateGalleryImage(req.params.id, req.body);
+  if (req.body.media_type !== undefined && req.body.media_type !== 'image' && req.body.media_type !== 'video') {
+    return res.status(400).json({ error: 'Media type must be image or video' });
+  }
+  const updates = { ...req.body };
+  if (updates.poster_url === '') updates.poster_url = null;
+  const updated = await db.updateGalleryImage(req.params.id, updates);
   if (!updated) return res.status(404).json({ error: 'Gallery item not found' });
   res.json(updated);
 }));

@@ -2,15 +2,18 @@ import React, { lazy, startTransition, Suspense, useEffect, useRef, useState } f
 import { 
   ArrowRight, MapPin, Mail, Phone, Calendar, User, 
   Search, Filter, Coffee, ChevronRight, CheckCircle, 
-  ChevronLeft, X, ExternalLink, Globe, Layers, Handshake, HelpCircle 
+  ChevronLeft, X, ExternalLink, Globe, Layers, Handshake, HelpCircle
 } from 'lucide-react';
 import { Product, ProductCategory, Service, NewsPost, GalleryImage, ViewType, Inquiry, SiteSettings } from './types.js';
 import { translations, faqsList } from './translations.js';
 import Header from './components/Header.tsx';
 import Footer from './components/Footer.tsx';
-import packing from '../images/packing.webp';
+import packing from '../images/edited.jpg';
 import aboutBannerVideo from '../images/video.webm';
 import image3 from '../images/IMG_8580.webp';
+import team1 from '../images/team/team1.webp';
+import team2 from '../images/team/team2.webp';
+import team3 from '../images/team/team3.webp';
 import { csrfHeaders } from './auth-client.ts';
 import { inquiryProductValues } from './inquiry.ts';
 import { newsPath, parseAppRoute, pathForView, productPath } from './routing.ts';
@@ -19,6 +22,47 @@ import { updateClientSeo } from './seo.ts';
 const AdminPanel = lazy(() => import('./components/AdminPanel.tsx'));
 
 const video = 'https://www.youtube.com/embed/34i7bXsD_ZI?autoplay=1&mute=1&loop=1&playlist=34i7bXsD_ZI&controls=1&playsinline=1&rel=0';
+const googleMapsShareUrl = 'https://maps.app.goo.gl/XBHCdsmYUY4wgDe6A?g_st=atm';
+const googleMapsEmbedUrl = 'https://maps.google.com/maps?q=7.0161207,38.4771557&z=16&output=embed';
+
+const leadershipTeam = [
+  {
+    nameEn: 'Biniyam Estifanos',
+    nameAm: 'ቢኒያም እስጢፋኖስ',
+    roleEn: 'Founder & CEO',
+    roleAm: 'መስራች እና ዋና ሥራ አስፈጻሚ',
+    bioEn: 'Biniyam leads Konjo Buna with a vision to connect Ethiopia’s coffee heritage with modern, responsible, and customer-focused business.',
+    bioAm: 'ቢኒያም የኢትዮጵያን የቡና ቅርስ ከዘመናዊ፣ ኃላፊነት ካለው እና ደንበኛን ማዕከል ካደረገ ንግድ ጋር የማስተሳሰር ራዕይ በመያዝ ቆንጆ ቡናን ይመራል።',
+    image: team1,
+    width: 850,
+    height: 1280,
+    position: 'object-[center_34%]',
+  },
+  {
+    nameEn: 'Simret Mesfin ',
+    nameAm: 'ስምረት መስፍን',
+    roleEn: 'Marketing Director',
+    roleAm: 'የግብይት ዳይሬክተር',
+    bioEn: 'Simret holds a BA in Tourism Management and brings six years of experience in marketing, tourism, brand development, and customer engagement.',
+    bioAm: 'ስምረት በቱሪዝም ማኔጅመንት የመጀመሪያ ዲግሪ ያላት ሲሆን፣ በግብይት፣ ቱሪዝም፣ የምርት ስም ልማት እና የደንበኞች ተሳትፎ የስድስት ዓመት ልምድ አላት።',
+    image: team2,
+    width: 960,
+    height: 1236,
+    position: 'object-[center_38%]',
+  },
+  {
+    nameEn: 'Nigst Niguse',
+    nameAm: 'ንግስት ንጉሴ',
+    roleEn: 'Product Manager',
+    roleAm: 'የምርት ሥራ አስኪያጅ',
+    bioEn: 'Nigst oversees product quality and development, helping ensure every Konjo Buna product consistently represents authentic Ethiopian coffee.',
+    bioAm: 'ንግስት የምርት ጥራትን እና ልማትን ትቆጣጠራለች፤ እያንዳንዱ የቆንጆ ቡና ምርት እውነተኛውን የኢትዮጵያ ቡና በተከታታይ እንዲወክል ታግዛለች።',
+    image: team3,
+    width: 960,
+    height: 1237,
+    position: 'object-[center_35%]',
+  },
+] as const;
 
 function DeferredAboutVideo() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,6 +144,7 @@ export default function App() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const lightboxCloseRef = useRef<HTMLButtonElement>(null);
   const lightboxReturnFocus = useRef<HTMLElement | null>(null);
+  const lightboxVideoRef = useRef<HTMLVideoElement>(null);
   const [faqOpenIndex, setFaqOpenIndex] = useState<number | null>(null);
 
   // Form Submissions states
@@ -114,16 +159,36 @@ export default function App() {
 
   const t = translations[lang];
 
+  const pauseLightboxVideo = () => {
+    lightboxVideoRef.current?.pause();
+  };
+
+  const closeLightbox = () => {
+    pauseLightboxVideo();
+    setLightboxIndex(null);
+  };
+
+  const moveLightbox = (nextIndex: number) => {
+    pauseLightboxVideo();
+    setLightboxIndex(nextIndex);
+  };
+
   useEffect(() => {
     if (lightboxIndex === null) return;
     lightboxCloseRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setLightboxIndex(null);
-      if (event.key === 'ArrowLeft') setLightboxIndex(index => index === null ? null : (index === 0 ? gallery.length - 1 : index - 1));
-      if (event.key === 'ArrowRight') setLightboxIndex(index => index === null ? null : (index === gallery.length - 1 ? 0 : index + 1));
+      if (event.key === 'Escape') closeLightbox();
+      if (event.key === 'ArrowLeft') {
+        pauseLightboxVideo();
+        setLightboxIndex(index => index === null ? null : (index === 0 ? gallery.length - 1 : index - 1));
+      }
+      if (event.key === 'ArrowRight') {
+        pauseLightboxVideo();
+        setLightboxIndex(index => index === null ? null : (index === gallery.length - 1 ? 0 : index + 1));
+      }
       if (event.key === 'Tab') {
         const dialog = document.getElementById('gallery-lightbox');
-        const focusable = Array.from(dialog?.querySelectorAll<HTMLElement>('button, [href], [tabindex]:not([tabindex="-1"])') ?? []);
+        const focusable = Array.from(dialog?.querySelectorAll<HTMLElement>('button, [href], video[controls], [tabindex]:not([tabindex="-1"])') ?? []);
         if (!focusable.length) return;
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
@@ -134,6 +199,7 @@ export default function App() {
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      pauseLightboxVideo();
       lightboxReturnFocus.current?.focus();
     };
   }, [lightboxIndex === null, gallery.length]);
@@ -284,6 +350,7 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = () => {
+      closeLightbox();
       const route = parseAppRoute();
       setCurrentView(route.view);
       setSelectedProductSlug(route.productKey);
@@ -373,6 +440,7 @@ export default function App() {
 
   // Navigation controller helper
   const navigateTo = (view: ViewType, explicitPath = pathForView(view)) => {
+    closeLightbox();
     if (view !== 'product-detail') setSelectedProductSlug(null);
     if (view !== 'news' || explicitPath === '/news') setSelectedNewsSlug(null);
     setCurrentView(view);
@@ -453,13 +521,13 @@ export default function App() {
                 <div className="lg:col-span-5 flex flex-col justify-center space-y-6">
                   <div className="space-y-3">
                     <span className="text-[#7E4015] text-xs font-bold uppercase tracking-[0.3em] block">
-                      {lang === 'en' ? 'Est. 1994 • Hawassa' : 'ከ1986 ዓ.ም ጀምሮ • ሀዋሳ'}
+                      {lang === 'en' ? 'Est. 2016 • Hawassa' : 'ከ2008 ዓ.ም ጀምሮ • ሀዋሳ'}
                     </span>
                     <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[0.95] text-[#2D2A26] -ml-1">
                       {lang === 'en' ? (
-                        <>Brewed with<br/> <span className="text-[#7E4015] italic">Care Shared</span> <br/> With Loved Ones.</>
+                        <>From Ethiopia<br/> <span className="text-[#7E4015] italic"> Highlands</span> <br/> to Your Cup</>
                       ) : (
-                        <>በጥንቃቄ <br/> <span className="text-[#7E4015] italic">የተዘጋጀ</span> <br/> ከሚወዱት ጋር የሚጋሩት።</>
+                        <>ከኢትዮጵያ ደጋማ ቦታዎች <br/> <span className="text-[#7E4015] italic">እስከ</span> <br/>እርሶ ሲኒ ድረስ</>
                       )}
                     </h1>
                   </div>
@@ -489,8 +557,8 @@ export default function App() {
                   {/* High density stats row */}
                   <div className="mt-12 pt-8 border-t border-[#2D2A26]/10 grid grid-cols-3 gap-4">
                     <div>
-                      <div className="text-2xl sm:text-3xl font-serif font-bold text-[#7E4015]">42+</div>
-                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 font-bold leading-tight">Partner Farms</div>
+                      <div className="text-2xl sm:text-3xl font-serif font-bold text-[#7E4015]">100+</div>
+                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 font-bold leading-tight">Hotel & Supermarket Customers</div>
                     </div>
                     <div>
                       <div className="text-2xl sm:text-3xl font-serif font-bold text-[#2D2A26]">18k</div>
@@ -570,7 +638,7 @@ export default function App() {
             <section className="deferred-home-section py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-[#2D2A26]/10">
               <div className="mb-10 flex justify-center">
                 <h2 className="max-w-3xl text-center font-serif text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-[#2D2A26]">
-                  {lang === 'en' ? 'Why Choose Konjo Coffee?' : 'ለምን ኮንጆ ቡናን ይመርጣሉ?'}
+                  {lang === 'en' ? 'Why Choose Konjo Coffee?' : 'ለምን ቆንጆ ቡናን ይመርጣሉ?'}
                 </h2>
               </div>
 
@@ -856,24 +924,41 @@ export default function App() {
             </div>
 
             {/* Team Bios */}
-            <div className="space-y-8">
+            <div className="space-y-8 scroll-mt-28" id="leadership-team">
               <div className="text-center max-w-2xl mx-auto space-y-2">
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#2D2A26]">{t.about_team_title}</h2>
                 <p className="text-xs text-gray-500">{t.about_team_subtitle}</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[
-                  { name: 'Abebe Geda', role: 'Managing Director & Founder', bio: 'Over 20 years managing bulk commodity shipping and direct trade relations across East Africa.', img: 'https://images.unsplash.com/photo-1507133750040-4a8f57021571?q=80&w=400' },
-                  { name: 'Ashenafi Hailu', role: 'Director of Sourcing & Agronomy', bio: 'Agronomist specialized in highland single-origins, training smallholders in organic cherry collection.', img: 'https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=400' },
-                  { name: 'Sara Demeke', role: 'Chief of Sustainability', bio: 'Coordinates eco-friendly pulping processes and directs the cooperative premium school-build projects.', img: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=400' }
-                ].map((member, mIdx) => (
-                  <div key={mIdx} className="bg-white border border-[#2D2A26]/10 rounded-none p-6 text-center shadow-none hover:border-[#7E4015] hover:shadow-md transition-all">
-                    <img src={member.img} width="96" height="96" loading="lazy" className="w-24 h-24 object-cover rounded-full mx-auto border border-[#2D2A26]/10 mb-4 shadow-sm" alt={member.name} />
-                    <h4 className="font-serif font-bold text-lg text-gray-900">{member.name}</h4>
-                    <p className="text-xs text-[#7E4015] font-semibold tracking-wider uppercase mt-1">{member.role}</p>
-                    <p className="text-xs text-gray-500 mt-3 leading-relaxed font-light">{member.bio}</p>
-                  </div>
-                ))}
+              <div className="mx-auto grid max-w-3xl grid-cols-1 justify-items-center gap-6 md:auto-rows-fr md:grid-cols-2 md:gap-8  ">
+                {leadershipTeam.map((member, index) => {
+                  const name = lang === 'en' ? member.nameEn : member.nameAm;
+                  const role = lang === 'en' ? member.roleEn : member.roleAm;
+                  const bio = lang === 'en' ? member.bioEn : member.bioAm;
+                  return (
+                    <article
+                      key={member.nameEn}
+                      className={`flex h-full w-full max-w-sm flex-col border border-[#2D2A26]/10 rounded-2xl bg-white p-6 text-center shadow-sm transition-all hover:border-[#7E4015] hover:shadow-md md:max-w-none ${index === 0 ? 'md:col-span-2 md:w-[calc(50%-1rem)] md:justify-self-center' : ''}`}
+                    >
+                      <div className="mx-auto h-36 w-36 shrink-0 overflow-hidden rounded-full border border-[#2D2A26]/10 bg-[#F8F1E7] shadow-sm sm:h-40 sm:w-40">
+                        <img
+                          src={member.image}
+                          width="160"
+                          height="160"
+                          loading="lazy"
+                          decoding="async"
+                          sizes="(min-width: 640px) 160px, 144px"
+                          className={`h-full w-full object-cover ${member.position}`}
+                          alt={lang === 'en' ? `Portrait of ${member.nameEn}, ${member.roleEn} at Konjo Buna` : `የ${member.nameAm}፣ የቆንጆ ቡና ${member.roleAm} የቁም ፎቶ`}
+                        />
+                      </div>
+                      <div className="mt-5 flex flex-1 flex-col">
+                        <h3 className="font-serif text-lg font-bold text-gray-900">{name}</h3>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-[#7E4015]">{role}</p>
+                        <p className="mt-3 flex-1 text-xs font-light leading-relaxed text-gray-600">{bio}</p>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </div>
 
@@ -1381,7 +1466,7 @@ export default function App() {
                     : 'border-[#2D2A26]/10 text-gray-600 hover:border-[#7E4015] hover:text-[#7E4015]'
                 }`}
               >
-                {lang === 'en' ? 'All Assets' : 'ሁሉንም'}
+                {lang === 'en' ? 'All Pictures' : 'ሁሉንም ፎቶዎች'}
               </button>
               {Array.from(new Set(gallery.map(g => g.category_en))).map((cat) => {
                 const item = gallery.find(g => g.category_en === cat);
@@ -1409,28 +1494,64 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="gallery-grid">
                   {filtered.length === 0 && (
                     <p className="sm:col-span-2 md:col-span-3 lg:col-span-4 bg-white border border-[#2D2A26]/10 p-12 text-center text-sm text-gray-600" role="status">
-                      {lang === 'en' ? 'No gallery images are available in this category.' : 'á‰ á‹šáˆ… áˆá‹µá‰¥ á‹áˆµáŒ¥ á‹¨áŒ‹áˆˆáˆª áˆáˆµáˆŽá‰½ á‹¨áˆ‰áˆá¢'}
+                      {lang === 'en' ? 'No gallery images are available in this category.' : 'ምንም ፎቶዎች አልተገኙም።'}
                     </p>
                   )}
-                  {filtered.map((item, index) => (
-                    <button
-                      type="button"
-                      key={item.id}
-                      onClick={(event) => {
-                        lightboxReturnFocus.current = event.currentTarget;
-                        setLightboxIndex(gallery.findIndex(image => image.id === item.id));
-                      }}
-                      aria-label={`${lang === 'en' ? item.title_en : item.title_am}; open image ${index + 1} of ${filtered.length}`}
-                      className="group bg-white text-left rounded-none overflow-hidden border border-[#2D2A26]/10 shadow-none hover:shadow-md cursor-zoom-in transition-all relative aspect-square"
-                    >
-                      <img src={item.image_url} width="800" height="800" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" alt={lang === 'en' ? item.title_en : item.title_am} />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
-                        <span className="text-[#7E4015] text-[9px] font-bold uppercase tracking-wider">{lang === 'en' ? item.category_en : item.category_am}</span>
-                        <h4 className="font-serif text-lg font-bold text-[#F8F1E7] mt-0.5 line-clamp-1">{lang === 'en' ? item.title_en : item.title_am}</h4>
-                        <p className="text-[10px] text-[#F8F1E7]/70 line-clamp-1 mt-0.5 font-light">{lang === 'en' ? item.description_en : item.description_am}</p>
-                      </div>
-                    </button>
-                  ))}
+                  {filtered.map((item, index) => {
+                    const title = lang === 'en' ? item.title_en : item.title_am;
+                    const galleryIndex = gallery.findIndex(asset => asset.id === item.id);
+                    const openAsset = (event: React.MouseEvent<HTMLButtonElement>) => {
+                      lightboxReturnFocus.current = event.currentTarget;
+                      setLightboxIndex(galleryIndex);
+                    };
+
+                    if (item.media_type === 'video') {
+                      return (
+                        <article key={item.id} className="group bg-white overflow-hidden border border-[#2D2A26]/10 shadow-none hover:shadow-md transition-all">
+                          <div className="aspect-square bg-[#2D2A26]">
+                            <video
+                              src={item.image_url}
+                              poster={item.poster_url || undefined}
+                              controls
+                              playsInline
+                              preload="none"
+                              className="h-full w-full object-contain bg-black"
+                              aria-label={title}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={openAsset}
+                            aria-label={`${title}; open video ${index + 1} of ${filtered.length} in gallery viewer`}
+                            className="min-h-11 w-full p-4 text-left hover:bg-[#F8F1E7]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#7E4015]"
+                          >
+                            <span className="text-[#7E4015] text-[9px] font-bold uppercase tracking-wider">{lang === 'en' ? item.category_en : item.category_am}</span>
+                            <span className="mt-1 flex items-center justify-between gap-3">
+                              <span className="font-serif text-base font-bold text-[#2D2A26] line-clamp-1">{title}</span>
+                              <ExternalLink className="h-4 w-4 shrink-0 text-[#7E4015]" aria-hidden="true" />
+                            </span>
+                          </button>
+                        </article>
+                      );
+                    }
+
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        onClick={openAsset}
+                        aria-label={`${title}; open image ${index + 1} of ${filtered.length}`}
+                        className="group bg-white text-left rounded-none overflow-hidden border border-[#2D2A26]/10 shadow-none hover:shadow-md cursor-zoom-in transition-all relative aspect-square"
+                      >
+                        <img src={item.image_url} width="800" height="800" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" alt={title} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
+                          <span className="text-[#7E4015] text-[9px] font-bold uppercase tracking-wider">{lang === 'en' ? item.category_en : item.category_am}</span>
+                          <h4 className="font-serif text-lg font-bold text-[#F8F1E7] mt-0.5 line-clamp-1">{title}</h4>
+                          <p className="text-[10px] text-[#F8F1E7]/70 line-clamp-1 mt-0.5 font-light">{lang === 'en' ? item.description_en : item.description_am}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -1452,8 +1573,8 @@ export default function App() {
                   <button 
                     ref={lightboxCloseRef}
                     type="button"
-                    onClick={() => setLightboxIndex(null)}
-                    aria-label="Close gallery image"
+                    onClick={closeLightbox}
+                    aria-label={`Close gallery ${gallery[lightboxIndex].media_type === 'video' ? 'video' : 'image'}`}
                     className="min-h-11 min-w-11 inline-flex items-center justify-center p-2 border border-white/30 hover:border-white rounded-none hover:bg-white/10 transition-all text-[#F8F1E7]"
                   >
                     <X className="h-5 w-5" />
@@ -1464,21 +1585,34 @@ export default function App() {
                 <div className="flex-1 flex items-center justify-between max-w-5xl mx-auto w-full py-8">
                   <button 
                     type="button"
-                    onClick={() => setLightboxIndex(lightboxIndex === 0 ? gallery.length - 1 : lightboxIndex - 1)}
-                    aria-label="Previous gallery image"
+                    onClick={() => moveLightbox(lightboxIndex === 0 ? gallery.length - 1 : lightboxIndex - 1)}
+                    aria-label="Previous gallery asset"
                     className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-white/5 hover:bg-[#7E4015] border border-white/30 hover:border-transparent rounded-none transition-all text-[#F8F1E7]"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
 
                   <div className="max-h-[60vh] max-w-[80vw] overflow-hidden rounded-none shadow-2xl border border-[#2D2A26]/20">
-                    <img src={gallery[lightboxIndex].image_url} width="1200" height="900" className="w-full max-h-[60vh] object-contain" alt={lang === 'en' ? gallery[lightboxIndex].title_en : gallery[lightboxIndex].title_am} />
+                    {gallery[lightboxIndex].media_type === 'video' ? (
+                      <video
+                        ref={lightboxVideoRef}
+                        src={gallery[lightboxIndex].image_url}
+                        poster={gallery[lightboxIndex].poster_url || undefined}
+                        controls
+                        playsInline
+                        preload="none"
+                        className="w-full max-h-[60vh] object-contain bg-black"
+                        aria-label={lang === 'en' ? gallery[lightboxIndex].title_en : gallery[lightboxIndex].title_am}
+                      />
+                    ) : (
+                      <img src={gallery[lightboxIndex].image_url} width="1200" height="900" className="w-full max-h-[60vh] object-contain" alt={lang === 'en' ? gallery[lightboxIndex].title_en : gallery[lightboxIndex].title_am} />
+                    )}
                   </div>
 
                   <button 
                     type="button"
-                    onClick={() => setLightboxIndex(lightboxIndex === gallery.length - 1 ? 0 : lightboxIndex + 1)}
-                    aria-label="Next gallery image"
+                    onClick={() => moveLightbox(lightboxIndex === gallery.length - 1 ? 0 : lightboxIndex + 1)}
+                    aria-label="Next gallery asset"
                     className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-white/5 hover:bg-[#7E4015] border border-white/30 hover:border-transparent rounded-none transition-all text-[#F8F1E7]"
                   >
                     <ChevronRight className="h-5 w-5" />
@@ -1625,20 +1759,35 @@ export default function App() {
                   </ul>
                 </div>
 
-                {/* Stylized Interactive Map Area */}
+                {/* Embedded map and accessible fallback */}
                 <div className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none">
                   <div className="p-4 bg-gray-50 border-b border-[#2D2A26]/5 flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono"> headquarter coordinates</span>
-                    <span className="text-[10px] font-bold text-[#7E4015] font-mono">9.0041° N, 38.7779° E</span>
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono">Location coordinates</span>
+                    <span className="text-[10px] font-bold text-[#7E4015] font-mono">7.0161207° N, 38.4771557° E</span>
                   </div>
-                  {/* Visual Map Representation */}
-                  <div className="h-48 bg-[#2D2A26] relative flex items-center justify-center text-center p-4">
-                    <div className="absolute inset-0 opacity-15 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1524350876685-274059332603?q=80&w=400')" }}></div>
-                    <div className="relative z-10 space-y-2">
-                      <MapPin className="h-8 w-8 text-[#7E4015] mx-auto animate-bounce" />
-                      <h4 className="font-serif font-bold text-white text-sm">Mega Building Sourcing Hub</h4>
-                      <p className="text-[10px] text-gray-300 font-light max-w-xs mx-auto">Adjacent to Gedeo Sourcing Office and Addis Custom Clearance Desk</p>
-                    </div>
+                  <div className="h-64 bg-[#2D2A26]">
+                    <iframe
+                      src={googleMapsEmbedUrl}
+                      title="Google Map showing the Konjo Buna location at 7.0161207, 38.4771557"
+                      width="600"
+                      height="256"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      className="h-full w-full border-0"
+                      allowFullScreen
+                    />
+                  </div>
+                  <div className="flex flex-col items-start gap-3 border-t border-[#2D2A26]/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-gray-600">Map not displaying? Open the exact location in Google Maps.</p>
+                    <a
+                      href={googleMapsShareUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-11 items-center gap-2 bg-[#7E4015] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#2D2A26]"
+                    >
+                      Open in Google Maps
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    </a>
                   </div>
                 </div>
 

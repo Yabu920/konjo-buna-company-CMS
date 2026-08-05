@@ -21,16 +21,16 @@ const routeLabels: Record<'en' | 'am', Partial<Record<ViewType, { title: string;
     admin: { title: 'CMS Admin | Konjo Buna', description: 'Secure Konjo Buna content administration.' },
   },
   am: {
-    home: { title: 'ኮንጆ ቡና | ከፍተኛ ጥራት ያለው የኢትዮጵያ ቡና', description: 'በጥንቃቄ የተመረጠ ከፍተኛ ጥራት ያለው የኢትዮጵያ ቡና።' },
-    about: { title: 'ስለ ኮንጆ ቡና', description: 'ስለ ኮንጆ ቡና ታሪክ፣ እሴቶች እና የጥራት ሂደት ይወቁ።' },
-    products: { title: 'የቡና ምርቶች | ኮንጆ ቡና', description: 'የኮንጆ ቡና ምርቶችን፣ አመጣጥን እና የኤክስፖርት መረጃን ይመልከቱ።' },
-    services: { title: 'የቡና አገልግሎቶች | ኮንጆ ቡና', description: 'የቡና ማቀነባበር፣ ማሸግ እና ኤክስፖርት አገልግሎቶች።' },
-    news: { title: 'የቡና ዜና | ኮንጆ ቡና', description: 'የኮንጆ ቡና እና የኢትዮጵያ ቡና ዜናዎች።' },
-    gallery: { title: 'የፎቶ ማዕከል | ኮንጆ ቡና', description: 'የኮንጆ ቡና ምርቶችን፣ ሂደቶችን እና ባህልን በፎቶ ይመልከቱ።' },
-    contact: { title: 'ያግኙን | ኮንጆ ቡና', description: 'ለቡና እና ለኤክስፖርት ጥያቄ ኮንጆ ቡናን ያግኙ።' },
-    faq: { title: 'ተደጋጋሚ ጥያቄዎች | ኮንጆ ቡና', description: 'ስለ ኮንጆ ቡና ምርቶች እና አገልግሎቶች መልሶች።' },
-    search: { title: 'ፍለጋ | ኮንጆ ቡና', description: 'የኮንጆ ቡና ምርቶችን፣ አገልግሎቶችን እና ዜናዎችን ይፈልጉ።' },
-    admin: { title: 'የይዘት አስተዳደር | ኮንጆ ቡና', description: 'ደህንነቱ የተጠበቀ የኮንጆ ቡና ይዘት አስተዳደር።' },
+    home: { title: 'ቆንጆ ቡና | ከፍተኛ ጥራት ያለው የኢትዮጵያ ቡና', description: 'በጥንቃቄ የተመረጠ ከፍተኛ ጥራት ያለው የኢትዮጵያ ቡና።' },
+    about: { title: 'ስለ ቆንጆ ቡና', description: 'ስለ ቆንጆ ቡና ታሪክ፣ እሴቶች እና የጥራት ሂደት ይወቁ።' },
+    products: { title: 'የቡና ምርቶች | ቆንጆ ቡና', description: 'የቆንጆ ቡና ምርቶችን፣ አመጣጥን እና የኤክስፖርት መረጃን ይመልከቱ።' },
+    services: { title: 'የቡና አገልግሎቶች | ቆንጆ ቡና', description: 'የቡና ማቀነባበር፣ ማሸግ እና ኤክስፖርት አገልግሎቶች።' },
+    news: { title: 'የቡና ዜና | ቆንጆ ቡና', description: 'የቆንጆ ቡና እና የኢትዮጵያ ቡና ዜናዎች።' },
+    gallery: { title: 'የፎቶ ማዕከል | ቆንጆ ቡና', description: 'የቆንጆ ቡና ምርቶችን፣ ሂደቶችን እና ባህልን በፎቶ ይመልከቱ።' },
+    contact: { title: 'ያግኙን | ቆንጆ ቡና', description: 'ለቡና እና ለኤክስፖርት ጥያቄ ቆንጆ ቡናን ያግኙ።' },
+    faq: { title: 'ተደጋጋሚ ጥያቄዎች | ቆንጆ ቡና', description: 'ስለ ቆንጆ ቡና ምርቶች እና አገልግሎቶች መልሶች።' },
+    search: { title: 'ፍለጋ | ቆንጆ ቡና', description: 'የቆንጆ ቡና ምርቶችን፣ አገልግሎቶችን እና ዜናዎችን ይፈልጉ።' },
+    admin: { title: 'የይዘት አስተዳደር | ቆንጆ ቡና', description: 'ደህነቱ የተጠበቀ የቆንጆ ቡና ይዘት አስተዳደር።' },
   },
 };
 
@@ -63,4 +63,3 @@ export function updateClientSeo({ view, lang, product, newsPost }: ClientSeoOpti
   setMeta('meta[name="twitter:title"]', 'content', title);
   setMeta('meta[name="twitter:description"]', 'content', description);
 }
-

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Phone, MapPin, Youtube, Instagram, Linkedin, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Youtube, Instagram, Linkedin, Facebook, Send } from 'lucide-react';
 import { ViewType } from '../types.js';
 import { translations } from '../translations.js';
 import { pathForView } from '../routing.ts';
@@ -17,23 +17,23 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   const siteTitleSetting = settings?.find(s => s.key === 'site_title');
-  const siteTitle = lang === 'en' 
-    ? (siteTitleSetting?.value_en || 'KONJO BUNA') 
-    : (siteTitleSetting?.value_am || 'ኮንጆ ቡና');
+  const siteTitle = lang === 'en'
+    ? (siteTitleSetting?.value_en || 'KONJO BUNA')
+    : (siteTitleSetting?.value_am || 'ቆንጆ ቡና');
 
   const phoneSetting = settings?.find(s => s.key === 'company_phone');
-  const phoneVal = lang === 'en' 
-    ? (phoneSetting?.value_en || '+251 11 662 4055') 
-    : (phoneSetting?.value_am || '+251 11 662 4055');
+  const phoneVal = lang === 'en'
+    ? (phoneSetting?.value_en || '+251 46 221 1352')
+    : (phoneSetting?.value_am || '+251 46 221 1352');
 
   const emailSetting = settings?.find(s => s.key === 'company_email');
-  const emailVal = lang === 'en' 
-    ? (emailSetting?.value_en || 'info@konjocoffee.com') 
-    : (emailSetting?.value_am || 'info@konjocoffee.com');
+  const emailVal = lang === 'en'
+    ? (emailSetting?.value_en || 'konjobuna12@gmail.com')
+    : (emailSetting?.value_am || 'konjobuna12@gmail.com');
 
   const addressSetting = settings?.find(s => s.key === 'company_address');
-  const addressVal = lang === 'en' 
-    ? (addressSetting?.value_en || 'Bole Road, Mega Building 5th Floor, Addis Ababa, Ethiopia') 
+  const addressVal = lang === 'en'
+    ? (addressSetting?.value_en || 'Bole Road, Mega Building 5th Floor, Addis Ababa, Ethiopia')
     : (addressSetting?.value_am || 'ቦሌ መንገድ፥ ሜጋ ህንፃ 5ኛ ፎቅ፥ አዲስ አበባ፥ ኢትዮጵያ');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +56,7 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
     <footer className="bg-[#2D2A26] border-t border-[#F8F1E7]/10 text-[#F8F1E7]/80 pt-20 pb-10 font-sans" id="footer-section">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          
+
           {/* Column 1: Company Profile */}
           <div className="space-y-6">
             <a
@@ -77,6 +77,9 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
             </p>
             {/* Social Icons */}
             <div className="flex items-center gap-2 pt-2">
+              <a href="https://www.facebook.com/share/1G3FSS3Mvr/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Visit Konjo Buna on Facebook" className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-[#2D2A26] border border-[#F8F1E7]/20 hover:border-[#D08A44] hover:text-[#D08A44] text-[#F8F1E7] rounded-none transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D08A44]">
+                <Facebook className="h-4 w-4" aria-hidden="true" />
+              </a>
               <a href="#" aria-label="Konjo Buna on Instagram" className="min-h-11 min-w-11 inline-flex items-center justify-center p-3 bg-[#2D2A26] border border-[#F8F1E7]/20 hover:border-[#D08A44] hover:text-[#D08A44] text-[#F8F1E7] rounded-none transition-all duration-300">
                 <Instagram className="h-4 w-4" aria-hidden="true" />
               </a>
@@ -198,12 +201,12 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
         {/* Divider */}
         <div className="border-t border-[#F8F1E7]/10 pt-8 mt-8 flex flex-col md:flex-row items-center justify-between text-[10px] tracking-widest uppercase text-[#F8F1E7]/40 font-bold gap-4">
           <div className="flex gap-6">
-            <span>SCA Member</span>
+            {/* <span>Developed by Yeabsra Abera</span>
             <span>ISO 22000 Certified</span>
-            <span>Rainforest Alliance</span>
+            <span>Rainforest Alliance</span> */}
           </div>
           <div className="flex items-center gap-4">
-            <span>© 2026 Konjo Coffee PLC With BlueCode Technology solution</span>
+            <span>© 2026 Konjo-Buna & Eagle</span>
             <span className="opacity-20">|</span>
             <a
               href="/admin"
@@ -211,7 +214,7 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
               onClick={(event) => { event.preventDefault(); onNavigate('admin'); }}
               className="min-h-11 inline-flex items-center font-bold text-[#D08A44] hover:text-[#F8F1E7] transition-all"
             >
-              Admin Portal
+              Admin
             </a>
           </div>
         </div>

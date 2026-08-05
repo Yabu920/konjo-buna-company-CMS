@@ -132,14 +132,16 @@ model NewsPost {
 }
 
 model GalleryImage {
-  id             String @id @db.VarChar(191)
-  category_en    String @db.VarChar(191)
-  category_am    String @db.VarChar(191)
-  title_en       String @db.VarChar(255)
-  title_am       String @db.VarChar(255)
-  image_url      String @db.Text
-  description_en String @db.Text
-  description_am String @db.Text
+  id             String  @id @db.VarChar(191)
+  category_en    String  @db.VarChar(191)
+  category_am    String  @db.VarChar(191)
+  title_en       String  @db.VarChar(255)
+  title_am       String  @db.VarChar(255)
+  image_url      String  @db.Text
+  media_type     String  @default("image") @db.VarChar(20)
+  poster_url     String? @db.Text
+  description_en String  @db.Text
+  description_am String  @db.Text
 
   @@map("gallery_images")
 }

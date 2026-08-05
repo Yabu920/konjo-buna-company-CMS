@@ -62,6 +62,12 @@ const subscriberToLegacy = (record: Awaited<ReturnType<typeof prisma.newsletterS
   created_at: record.created_at.toISOString(),
 } : undefined;
 
+const galleryToLegacy = (record: Awaited<ReturnType<typeof prisma.galleryImage.findFirst>>): GalleryImage | undefined => record ? {
+  ...record,
+  media_type: record.media_type === 'video' ? 'video' : 'image',
+  poster_url: record.poster_url ?? null,
+} : undefined;
+
 const sessionToLegacy = (record: Awaited<ReturnType<typeof prisma.adminSession.findFirst>>): AdminSession | undefined => record ? {
   ...record,
   created_at: record.created_at.toISOString(),
@@ -353,16 +359,16 @@ export class PrismaDBManager {
   }
 
   async getGalleryImages(): Promise<GalleryImage[]> {
-    return prisma.galleryImage.findMany();
+    return (await prisma.galleryImage.findMany()).map((record) => galleryToLegacy(record)!);
   }
 
   async createGalleryImage(image: Omit<GalleryImage, 'id'>): Promise<GalleryImage> {
-    return prisma.galleryImage.create({ data: { ...image, id: `gal-${crypto.randomUUID()}` } });
+    return galleryToLegacy(await prisma.galleryImage.create({ data: { ...image, id: `gal-${crypto.randomUUID()}` } }))!;
   }
 
   async updateGalleryImage(id: string, updates: Partial<Omit<GalleryImage, 'id'>>): Promise<GalleryImage | undefined> {
     if (!await prisma.galleryImage.findUnique({ where: { id }, select: { id: true } })) return undefined;
-    return prisma.galleryImage.update({ where: { id }, data: updates });
+    return galleryToLegacy(await prisma.galleryImage.update({ where: { id }, data: updates }));
   }
 
   async deleteGalleryImage(id: string): Promise<boolean> {

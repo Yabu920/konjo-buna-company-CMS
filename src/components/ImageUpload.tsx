@@ -6,9 +6,22 @@ interface Props {
   initialUrl?: string | null;
   maxSizeMB?: number;
   onChange?: (url: string) => void;
+  onUploadingChange?: (uploading: boolean) => void;
+  onUnsupportedFile?: (file: File) => boolean;
+  label?: string;
+  helpText?: string;
 }
 
-export default function ImageUpload({ name = 'image_url', initialUrl = null, maxSizeMB = 5, onChange }: Props) {
+export default function ImageUpload({
+  name = 'image_url',
+  initialUrl = null,
+  maxSizeMB = 5,
+  onChange,
+  onUploadingChange,
+  onUnsupportedFile,
+  label = 'Image',
+  helpText,
+}: Props) {
   const inputId = useId();
   const [preview, setPreview] = useState<string | null>(initialUrl);
   const [uploading, setUploading] = useState(false);
@@ -25,6 +38,10 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, max
 
     const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowed.includes(file.type)) {
+      if (onUnsupportedFile?.(file)) {
+        e.target.value = '';
+        return;
+      }
       setError('Invalid file type. Allowed: jpg, jpeg, png, webp.');
       return;
     }
@@ -43,6 +60,7 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, max
 
       // Upload as base64 JSON to backend
       setUploading(true);
+      onUploadingChange?.(true);
       try {
         const payload = { filename: file.name, data: dataUrl };
         const res = await fetch('/api/admin/upload', {
@@ -54,6 +72,7 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, max
         if (!res.ok) {
           setError(json.error || 'Upload failed');
           setUploading(false);
+          onUploadingChange?.(false);
           return;
         }
 
@@ -72,12 +91,14 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, max
         }
 
         setUploading(false);
+        onUploadingChange?.(false);
         setPreview(uploadedUrl);
         if (onChange) onChange(uploadedUrl);
       } catch (err: any) {
         console.error(err);
         setError('Upload failed');
         setUploading(false);
+        onUploadingChange?.(false);
       }
     };
     reader.readAsDataURL(file);
@@ -86,7 +107,7 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, max
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-4">
-        <label htmlFor={inputId} className="block text-xs font-bold text-[#2D2A26]/80 uppercase">Image</label>
+        <label htmlFor={inputId} className="block text-xs font-bold text-[#2D2A26]/80 uppercase">{label}</label>
         <input
           id={inputId}
           type="file"
@@ -96,14 +117,15 @@ export default function ImageUpload({ name = 'image_url', initialUrl = null, max
         />
         {uploading && <span className="text-sm text-[#7E4015]">Uploading…</span>}
       </div>
+      {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
       {error && <div role="alert" className="text-sm text-red-600">{error}</div>}
       {preview && (
         <div className="mt-2">
-          <img src={preview} alt="Selected upload preview" className="max-w-xs max-h-40 object-cover border" />
+          <img src={preview} width="320" height="160" alt="Selected upload preview" className="max-w-xs max-h-40 object-cover border" />
         </div>
       )}
       {/* ensure there's a hidden input for forms that rely on image_url value */}
-      <input type="hidden" name={name} value={preview || ''} />
+      <input type="hidden" name={name} value={preview || ''} readOnly />
     </div>
   );
 }
