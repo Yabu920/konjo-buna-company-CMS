@@ -7,6 +7,7 @@ import {
 import ImageUpload from './ImageUpload';
 import GalleryMediaUpload from './GalleryMediaUpload.tsx';
 import { csrfHeaders } from '../auth-client.ts';
+import { thumbnailUrl } from '../media.ts';
 import { 
   Product, ProductCategory, Service, NewsPost, 
   GalleryImage, Inquiry, NewsletterSubscriber, SiteSettings 
@@ -17,7 +18,21 @@ interface AdminPanelProps {
   authLoading: boolean;
   onLoginSuccess: (user: AdminUser) => void;
   onLogout: () => void | Promise<void>;
-  onPublicDataUpdate?: () => void | Promise<void>;
+  onPublicDataUpdate?: (mutation: PublicDataMutation) => void;
+}
+
+type PublicCollection = 'products' | 'categories' | 'services' | 'news' | 'gallery' | 'settings';
+export type PublicDataMutation = {
+  collection: PublicCollection;
+  action: 'upsert' | 'delete';
+  record?: Product | ProductCategory | Service | NewsPost | GalleryImage | SiteSettings;
+  id?: string;
+};
+
+function upsertById<T extends { id: string }>(items: T[], record: T): T[] {
+  const index = items.findIndex(item => item.id === record.id);
+  if (index === -1) return [record, ...items];
+  return items.map(item => item.id === record.id ? record : item);
 }
 
 interface AdminUser {
@@ -137,6 +152,8 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
   const [viewInquiryDetail, setViewInquiryDetail] = useState<Inquiry | null>(null);
   const [galleryUploadBusy, setGalleryUploadBusy] = useState(false);
   const [gallerySaving, setGallerySaving] = useState(false);
+  const [saveActivity, setSaveActivity] = useState<{ label: string; phase: 'saving' | 'error' } | null>(null);
+  const [retrySave, setRetrySave] = useState<(() => void) | null>(null);
 
   // Notification feedback
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -185,7 +202,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
     if (currentUser) {
       fetchData();
     }
-  }, [currentUser, activeTab]);
+  }, [currentUser, canManageAdmins]);
 
   useEffect(() => {
     document.querySelectorAll<HTMLFormElement>('form').forEach((form, formIndex) => {
@@ -209,6 +226,38 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
   const showFeedback = (type: 'success' | 'error', msg: string) => {
     setFeedback({ type, msg });
     setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const performSave = async <T,>(
+    label: string,
+    url: string,
+    init: RequestInit,
+    fallbackError: string,
+    onSuccess: (record: T) => void,
+  ): Promise<void> => {
+    const attempt = () => void performSave<T>(label, url, init, fallbackError, onSuccess);
+    setSaveActivity({ label, phase: 'saving' });
+    setRetrySave(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20_000);
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      let data: T | { error?: string } | null = null;
+      try { data = await response.json(); } catch { /* use the safe fallback below */ }
+      if (!response.ok) throw new Error((data as { error?: string } | null)?.error || fallbackError);
+      onSuccess(data as T);
+      setSaveActivity(null);
+      setRetrySave(null);
+    } catch (error) {
+      const message = error instanceof DOMException && error.name === 'AbortError'
+        ? `${label} timed out after 20 seconds.`
+        : (error instanceof Error ? error.message : fallbackError);
+      setSaveActivity({ label, phase: 'error' });
+      setRetrySave(() => attempt);
+      showFeedback('error', message);
+    } finally {
+      window.clearTimeout(timeout);
+    }
   };
 
   // Login handler
@@ -262,8 +311,16 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
       });
       if (res.ok) {
         showFeedback('success', 'Record removed successfully.');
-        void fetchData();
-        void onPublicDataUpdate?.();
+        if (tab === 'products') setProducts(items => items.filter(item => item.id !== id));
+        if (tab === 'categories') setCategories(items => items.filter(item => item.id !== id));
+        if (tab === 'services') setServices(items => items.filter(item => item.id !== id));
+        if (tab === 'news') setNews(items => items.filter(item => item.id !== id));
+        if (tab === 'gallery') setGallery(items => items.filter(item => item.id !== id));
+        if (tab === 'subscribers') setSubscribers(items => items.filter(item => item.id !== id));
+        if (tab === 'inquiries') setInquiries(items => items.filter(item => item.id !== id));
+        if (['products', 'categories', 'services', 'news', 'gallery'].includes(tab)) {
+          onPublicDataUpdate?.({ collection: tab as PublicCollection, action: 'delete', id });
+        }
       } else {
         showFeedback('error', 'Unable to remove record.');
       }
@@ -282,9 +339,10 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
+        const updated = await res.json() as Inquiry;
         showFeedback('success', `Inquiry marked as ${newStatus}.`);
         setViewInquiryDetail(null);
-        fetchData();
+        setInquiries(items => upsertById(items, updated));
       } else {
         showFeedback('error', 'Status modification rejected.');
       }
@@ -309,25 +367,19 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
     const url = isEdit ? `/api/categories/${currentEditItem.id}` : '/api/categories';
     const method = isEdit ? 'PUT' : 'POST';
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: csrfHeaders(),
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
+    await performSave<ProductCategory>(
+      isEdit ? 'Updating category' : 'Creating category',
+      url,
+      { method, headers: csrfHeaders(), body: JSON.stringify(body) },
+      'Failed saving category.',
+      saved => {
+        setCategories(items => upsertById(items, saved));
         showFeedback('success', `Category ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        void fetchData();
-        void onPublicDataUpdate?.();
-      } else {
-        const d = await res.json();
-        showFeedback('error', d.error || 'Failed saving category.');
-      }
-    } catch {
-      showFeedback('error', 'Server error saving category.');
-    }
+        onPublicDataUpdate?.({ collection: 'categories', action: 'upsert', record: saved });
+      },
+    );
   };
 
   // Product CRUD Submission
@@ -364,25 +416,19 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
     const url = isEdit ? `/api/products/${currentEditItem.id}` : '/api/products';
     const method = isEdit ? 'PUT' : 'POST';
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: csrfHeaders(),
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
+    await performSave<Product>(
+      isEdit ? 'Updating product' : 'Creating product',
+      url,
+      { method, headers: csrfHeaders(), body: JSON.stringify(body) },
+      'Failed saving product.',
+      saved => {
+        setProducts(items => upsertById(items, saved));
         showFeedback('success', `Product ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        void fetchData();
-        void onPublicDataUpdate?.();
-      } else {
-        const d = await res.json();
-        showFeedback('error', d.error || 'Failed saving product.');
-      }
-    } catch {
-      showFeedback('error', 'Server error saving product.');
-    }
+        onPublicDataUpdate?.({ collection: 'products', action: 'upsert', record: saved });
+      },
+    );
   };
 
   // Service CRUD Submission
@@ -405,25 +451,19 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
     const url = isEdit ? `/api/services/${currentEditItem.id}` : '/api/services';
     const method = isEdit ? 'PUT' : 'POST';
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: csrfHeaders(),
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
+    await performSave<Service>(
+      isEdit ? 'Updating service' : 'Creating service',
+      url,
+      { method, headers: csrfHeaders(), body: JSON.stringify(body) },
+      'Failed saving service.',
+      saved => {
+        setServices(items => upsertById(items, saved));
         showFeedback('success', `Service ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        void fetchData();
-        void onPublicDataUpdate?.();
-      } else {
-        const d = await res.json();
-        showFeedback('error', d.error || 'Failed saving service.');
-      }
-    } catch {
-      showFeedback('error', 'Server error saving service.');
-    }
+        onPublicDataUpdate?.({ collection: 'services', action: 'upsert', record: saved });
+      },
+    );
   };
 
   // News CRUD Submission
@@ -449,25 +489,19 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
     const url = isEdit ? `/api/news/${currentEditItem.id}` : '/api/news';
     const method = isEdit ? 'PUT' : 'POST';
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: csrfHeaders(),
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
+    await performSave<NewsPost>(
+      isEdit ? 'Updating article' : 'Creating article',
+      url,
+      { method, headers: csrfHeaders(), body: JSON.stringify(body) },
+      'Failed saving article.',
+      saved => {
+        setNews(items => upsertById(items, saved));
         showFeedback('success', `Article ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        void fetchData();
-        void onPublicDataUpdate?.();
-      } else {
-        const d = await res.json();
-        showFeedback('error', d.error || 'Failed saving article.');
-      }
-    } catch {
-      showFeedback('error', 'Server error saving news article.');
-    }
+        onPublicDataUpdate?.({ collection: 'news', action: 'upsert', record: saved });
+      },
+    );
   };
 
   // Gallery CRUD Submission
@@ -500,47 +534,37 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
     }
 
     setGallerySaving(true);
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: csrfHeaders(),
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
+    await performSave<GalleryImage>(
+      isEdit ? 'Updating media item' : 'Creating media item',
+      url,
+      { method, headers: csrfHeaders(), body: JSON.stringify(body) },
+      'Failed saving media.',
+      saved => {
+        setGallery(items => upsertById(items, saved));
         showFeedback('success', `Media item ${isEdit ? 'updated' : 'created'} successfully.`);
         setIsFormOpen(false);
         setCurrentEditItem(null);
-        void fetchData();
-        void onPublicDataUpdate?.();
-      } else {
-        const d = await res.json();
-        showFeedback('error', d.error || 'Failed saving media.');
-      }
-    } catch {
-      showFeedback('error', 'Server error saving media.');
-    } finally {
-      setGallerySaving(false);
-    }
+        onPublicDataUpdate?.({ collection: 'gallery', action: 'upsert', record: saved });
+      },
+    );
+    setGallerySaving(false);
   };
 
   // Site Settings Submission
   const handleSettingSave = async (key: string, valEn: string, valAm: string) => {
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: csrfHeaders(),
-        body: JSON.stringify({ key, value_en: valEn, value_am: valAm })
-      });
-      if (res.ok) {
+    await performSave<SiteSettings>(
+      `Updating ${key}`,
+      '/api/settings',
+      { method: 'POST', headers: csrfHeaders(), body: JSON.stringify({ key, value_en: valEn, value_am: valAm }) },
+      'Setting update rejected.',
+      saved => {
+        setSettings(items => items.some(item => item.key === saved.key)
+          ? items.map(item => item.key === saved.key ? saved : item)
+          : [saved, ...items]);
         showFeedback('success', `Setting key "${key}" saved.`);
-        void fetchData();
-        void onPublicDataUpdate?.();
-      } else {
-        showFeedback('error', 'Setting update rejected.');
-      }
-    } catch {
-      showFeedback('error', 'Server error saving setting.');
-    }
+        onPublicDataUpdate?.({ collection: 'settings', action: 'upsert', record: saved });
+      },
+    );
   };
 
   const adminHeaders = csrfHeaders();
@@ -565,9 +589,10 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
         method: 'POST', headers: adminHeaders, body: JSON.stringify(newAdmin),
       });
       if (!res.ok) return showFeedback('error', await responseError(res, 'Unable to create admin user.'));
+      const created = await res.json() as AdminUser;
+      setAdminUsers(items => upsertById(items, created));
       setNewAdmin({ username: '', email: '', name: '', role: 'Admin', password: '' });
       showFeedback('success', 'Admin user created successfully.');
-      void fetchData();
     } catch {
       showFeedback('error', 'Server error creating admin user.');
     }
@@ -582,9 +607,10 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
         body: JSON.stringify({ email: editingAdmin.email, name: editingAdmin.name, role: editingAdmin.role }),
       });
       if (!res.ok) return showFeedback('error', await responseError(res, 'Unable to update admin user.'));
+      const updated = await res.json() as AdminUser;
+      setAdminUsers(items => upsertById(items, updated));
       setEditingAdmin(null);
       showFeedback('success', 'Admin user updated successfully.');
-      void fetchData();
     } catch {
       showFeedback('error', 'Server error updating admin user.');
     }
@@ -615,8 +641,8 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
     try {
       const res = await fetch(`/api/admin/users/${admin.id}`, { method: 'DELETE', headers: adminHeaders });
       if (!res.ok) return showFeedback('error', await responseError(res, 'Unable to delete admin user.'));
+      setAdminUsers(items => items.filter(item => item.id !== admin.id));
       showFeedback('success', 'Admin user deleted.');
-      void fetchData();
     } catch {
       showFeedback('error', 'Server error deleting admin user.');
     }
@@ -916,6 +942,30 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
         </div>
 
         {/* Global Feedback Banner */}
+        {saveActivity && (
+          <div
+            role={saveActivity.phase === 'error' ? 'alert' : 'status'}
+            aria-live="polite"
+            className={`mb-4 rounded-xl border p-4 ${saveActivity.phase === 'saving' ? 'border-[#7E4015]/20 bg-[#F8F1E7] text-[#2D2A26]' : 'border-red-200 bg-red-50 text-red-800'}`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm font-semibold">
+                {saveActivity.phase === 'saving' ? `${saveActivity.label}â€¦` : `${saveActivity.label} did not complete.`}
+              </span>
+              {saveActivity.phase === 'error' && retrySave && (
+                <button type="button" onClick={retrySave} className="min-h-11 rounded-lg border border-red-300 px-4 py-2 text-xs font-bold hover:bg-red-100">
+                  Retry save
+                </button>
+              )}
+            </div>
+            {saveActivity.phase === 'saving' && (
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#7E4015]/15" aria-label="Save in progress">
+                <div className="h-full w-1/2 animate-pulse rounded-full bg-[#7E4015]" />
+              </div>
+            )}
+          </div>
+        )}
+
         {feedback && (
           <div role={feedback.type === 'error' ? 'alert' : 'status'} className={`mb-6 p-4 rounded-xl border flex items-center gap-3 shadow-md animate-fade-in ${
             feedback.type === 'success' 
@@ -1222,7 +1272,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                     return (
                       <tr key={p.id} className="hover:bg-gray-50/50">
                         <td className="px-6 py-4">
-                          <img src={p.image_url} width="48" height="48" loading="lazy" className="w-12 h-12 object-cover rounded-lg border border-[#7E4015]/10" alt={`${p.title_en} thumbnail`} />
+                          <img src={thumbnailUrl(p.image_url)} width="48" height="48" loading="lazy" className="w-12 h-12 object-cover rounded-lg border border-[#7E4015]/10" alt={`${p.title_en} thumbnail`} />
                         </td>
                         <td className="px-6 py-4 font-semibold text-gray-900">
                           <div>{p.title_en}</div>
@@ -1493,7 +1543,7 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                         {s.slug}
                       </td>
                       <td className="px-6 py-4">
-                        <img src={s.image_url} width="64" height="40" loading="lazy" className="w-16 h-10 object-cover rounded" alt={`${s.title_en} thumbnail`} />
+                        <img src={thumbnailUrl(s.image_url)} width="64" height="40" loading="lazy" className="w-16 h-10 object-cover rounded" alt={`${s.title_en} thumbnail`} />
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -1782,14 +1832,14 @@ export default function AdminPanel({ currentUser, authLoading, onLoginSuccess, o
                   <div className="relative h-44 bg-gray-100">
                     {g.media_type === 'video' ? (
                       g.poster_url ? (
-                        <img src={g.poster_url} width="500" height="500" loading="lazy" className="w-full h-full object-cover" alt={`${g.title_en} video poster`} />
+                        <img src={thumbnailUrl(g.poster_url)} width="640" height="640" loading="lazy" className="w-full h-full object-cover" alt={`${g.title_en} video poster`} />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-[#2D2A26] text-[#F8F1E7]" aria-label={`${g.title_en} video`}>
                           <FileVideo className="h-12 w-12" aria-hidden="true" />
                         </div>
                       )
                     ) : (
-                      <img src={g.image_url} width="500" height="500" loading="lazy" className="w-full h-full object-cover" alt={g.title_en} />
+                      <img src={thumbnailUrl(g.image_url)} width="640" height="640" loading="lazy" className="w-full h-full object-cover" alt={g.title_en} />
                     )}
                     <span className="absolute top-2 left-2 bg-black/75 backdrop-blur-md text-white text-[10px] px-2.5 py-1 rounded-lg border border-white/10">{g.category_en}</span>
                     <span className="absolute top-2 right-2 bg-[#7E4015] text-white text-[10px] px-2.5 py-1 rounded-lg">{g.media_type === 'video' ? 'VIDEO' : 'IMAGE'}</span>

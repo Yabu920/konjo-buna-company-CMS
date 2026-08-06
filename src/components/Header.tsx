@@ -65,7 +65,7 @@ export default function Header({
   return (
     <header className="sticky top-0 z-50 bg-[#7E4015] border-b border-[#2D2A26]/10 text-[#2D2A26] transition-all">
       <div className="max-w-[1800px] mx-auto px-4 lg:px-5 xl:px-7">
-        <div className="flex items-center h-20 gap-3 xl:gap-5">
+        <div className="flex h-20 w-full items-center gap-3 xl:gap-5">
           
           {/* Logo & Brand */}
           <a
@@ -215,7 +215,7 @@ export default function Header({
           </div>
 
           {/* Mobile Right Bar (Menu Toggle & Lang Switcher) */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:hidden">
             
             {/* Simple Small Lang Switcher */}
             <button

@@ -10,6 +10,7 @@ import Header from './components/Header.tsx';
 import Footer from './components/Footer.tsx';
 import packing from '../images/edited.jpg';
 import aboutBannerVideo from '../images/video.webm';
+import { thumbnailUrl } from './media.ts';
 import image3 from '../images/IMG_8580.webp';
 import team1 from '../images/team/team1.webp';
 import team2 from '../images/team/team2.webp';
@@ -18,6 +19,7 @@ import { csrfHeaders } from './auth-client.ts';
 import { inquiryProductValues } from './inquiry.ts';
 import { newsPath, parseAppRoute, pathForView, productPath } from './routing.ts';
 import { updateClientSeo } from './seo.ts';
+import type { PublicDataMutation } from './components/AdminPanel.tsx';
 
 const AdminPanel = lazy(() => import('./components/AdminPanel.tsx'));
 
@@ -92,7 +94,7 @@ function DeferredAboutVideo() {
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="none"
           aria-label="Traditional Ethiopian coffee ceremony"
           src={aboutBannerVideo}
         />
@@ -301,6 +303,31 @@ export default function App() {
     } finally {
       if (publicRequest.current === request) publicRequest.current = null;
     }
+  };
+
+  const applyPublicDataMutation = (mutation: PublicDataMutation) => {
+    const apply = <T extends { id: string }>(items: T[], record: T | undefined, id: string | undefined): T[] => {
+      if (mutation.action === 'delete') return items.filter(item => item.id !== id);
+      if (!record) return items;
+      return items.some(item => item.id === record.id)
+        ? items.map(item => item.id === record.id ? record : item)
+        : [record, ...items];
+    };
+
+    startTransition(() => {
+      if (mutation.collection === 'products') setProducts(items => apply(items, mutation.record as Product, mutation.id));
+      if (mutation.collection === 'categories') setCategories(items => apply(items, mutation.record as ProductCategory, mutation.id));
+      if (mutation.collection === 'services') setServices(items => apply(items, mutation.record as Service, mutation.id));
+      if (mutation.collection === 'news') setNews(items => apply(items, mutation.record as NewsPost, mutation.id));
+      if (mutation.collection === 'gallery') setGallery(items => apply(items, mutation.record as GalleryImage, mutation.id));
+      if (mutation.collection === 'settings') {
+        const setting = mutation.record as SiteSettings | undefined;
+        if (setting) setSettings(items => items.some(item => item.key === setting.key)
+          ? items.map(item => item.key === setting.key ? setting : item)
+          : [setting, ...items]);
+      }
+    });
+    publicDataLoaded.current = true;
   };
 
   useEffect(() => {
@@ -572,7 +599,7 @@ export default function App() {
                 </div>
 
                 {/* RIGHT HERO: Visual Bento Grid Collage */}
-                <div className="lg:col-span-7 grid grid-cols-6 grid-rows-6 gap-4 h-[550px] sm:h-[650px]">
+                <div className="lg:col-span-7 min-w-0 grid grid-cols-6 grid-rows-6 gap-2 sm:gap-4 h-[550px] sm:h-[650px]">
                   
                   {/* Main Visual Block (Natural Processed Specialty) */}
                   <div className="col-span-4 row-span-4 border rounded-2xl bg-[#2D2A26] relative overflow-hidden group">
@@ -590,18 +617,18 @@ export default function App() {
                   </div>
 
                   {/* Small Detail 1 (Yirgacheffe accent tile) */}
-                  <div className="col-span-2 row-span-2 border rounded-2xl bg-[#7E4015] p-5 flex flex-col justify-between text-[#F8F1E7]">
+                  <div className="col-span-2 row-span-2 min-w-0 border rounded-2xl bg-[#7E4015] p-3 sm:p-5 flex flex-col justify-between text-[#F8F1E7]">
                     <div className="w-8 h-8 border border-white/20 rounded-full flex items-center justify-center">
                       <Coffee className="h-3.5 w-3.5 text-white" />
                     </div>
                     <div>
-                      <div className="text-lg font-serif font-bold leading-tight">Yirgacheffe</div>
+                      <div className="break-words text-sm sm:text-lg font-serif font-bold leading-tight">Yirgacheffe</div>
                       <div className="text-[9px] uppercase tracking-wider opacity-70 mt-0.5">Floral & Citrus</div>
                     </div>
                   </div>
 
                   {/* Small Detail 2 (SCA Cup Score stat tile) */}
-                  <div className="col-span-2 row-span-2 border rounded-2xl bg-white/40 border border-[#2D2A26]/10 p-5 flex flex-col justify-center">
+                  <div className="col-span-2 row-span-2 min-w-0 border rounded-2xl bg-white/40 border border-[#2D2A26]/10 p-3 sm:p-5 flex flex-col justify-center">
                     <div className="text-3xl sm:text-4xl font-serif italic font-bold text-[#7E4015] leading-none mb-1">92+</div>
                     <p className="text-[10px] leading-tight opacity-75 uppercase tracking-tight font-bold text-[#2D2A26]">
                       Average SCA Cup Score for our micro-lots
@@ -609,18 +636,18 @@ export default function App() {
                   </div>
 
                   {/* Stat Bar (District origin tile) */}
-                  <div className="col-span-3 row-span-2 border rounded-2xl bg-white border border-[#2D2A26]/10 p-5 flex items-center gap-4">
+                  <div className="col-span-3 row-span-2 min-w-0 border rounded-2xl bg-white border border-[#2D2A26]/10 p-3 sm:p-5 flex items-center gap-2 sm:gap-4">
                     <div className="w-10 h-10 bg-[#F8F1E7] rounded-full flex-shrink-0 flex items-center justify-center border border-[#7E4015]/20">
                       <MapPin className="h-4.5 w-4.5 text-[#7E4015]" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-[9px] font-bold uppercase tracking-wider opacity-50 block leading-none mb-1">Direct Trade Origin</div>
                       <div className="text-xs sm:text-sm font-semibold text-[#2D2A26]">Guji Highland Estate</div>
                     </div>
                   </div>
 
                   {/* Logo / Quality Seal */}
-                  <div className="col-span-3 row-span-2 border rounded-3xl bg-[#2D2A26] p-4 flex items-center justify-center text-center">
+                  <div className="col-span-3 row-span-2 min-w-0 border rounded-3xl bg-[#2D2A26] p-2 sm:p-4 flex items-center justify-center text-center">
                     <div>
                       <div className="text-[#F8F1E7] text-[9px] tracking-[0.3em] uppercase mb-0.5 opacity-40">Export Quality</div>
                       <div className="text-[#F8F1E7] font-serif text-xl font-bold tracking-tight">KONJO BUNA</div>
@@ -1508,17 +1535,18 @@ export default function App() {
                     if (item.media_type === 'video') {
                       return (
                         <article key={item.id} className="group bg-white overflow-hidden border border-[#2D2A26]/10 shadow-none hover:shadow-md transition-all">
-                          <div className="aspect-square bg-[#2D2A26]">
-                            <video
-                              src={item.image_url}
-                              poster={item.poster_url || undefined}
-                              controls
-                              playsInline
-                              preload="none"
-                              className="h-full w-full object-contain bg-black"
-                              aria-label={title}
-                            />
-                          </div>
+                          <button
+                            type="button"
+                            onClick={openAsset}
+                            aria-label={`${title}; open video ${index + 1} of ${filtered.length} in gallery viewer`}
+                            className="aspect-square w-full bg-[#2D2A26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#7E4015]"
+                          >
+                            {item.poster_url ? (
+                              <img src={thumbnailUrl(item.poster_url)} width="640" height="640" loading="lazy" className="h-full w-full object-cover" alt={`${title} video preview`} />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center text-xs font-bold uppercase tracking-widest text-[#F8F1E7]">Open video</span>
+                            )}
+                          </button>
                           <button
                             type="button"
                             onClick={openAsset}
@@ -1543,7 +1571,7 @@ export default function App() {
                         aria-label={`${title}; open image ${index + 1} of ${filtered.length}`}
                         className="group bg-white text-left rounded-none overflow-hidden border border-[#2D2A26]/10 shadow-none hover:shadow-md cursor-zoom-in transition-all relative aspect-square"
                       >
-                        <img src={item.image_url} width="800" height="800" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" alt={title} />
+                        <img src={thumbnailUrl(item.image_url)} width="640" height="640" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102" alt={title} />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
                           <span className="text-[#7E4015] text-[9px] font-bold uppercase tracking-wider">{lang === 'en' ? item.category_en : item.category_am}</span>
                           <h4 className="font-serif text-lg font-bold text-[#F8F1E7] mt-0.5 line-clamp-1">{title}</h4>
@@ -1929,7 +1957,7 @@ export default function App() {
               authLoading={adminAuthLoading}
               onLoginSuccess={handleAdminLogin}
               onLogout={handleAdminLogout}
-              onPublicDataUpdate={() => fetchCollections(true)}
+              onPublicDataUpdate={applyPublicDataMutation}
             />
           </Suspense>
         )}

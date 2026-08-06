@@ -11,6 +11,7 @@ import { configureTrustProxy, rateLimitConfiguration, uploadConfiguration } from
 import { BoundedMemoryRateLimiter, rateLimitMiddleware } from './server/rate-limit.js';
 import { safeLogError, safeRequestContext, type RequestWithId } from './server/safe-log.js';
 import { decodeImageDataUrl, UploadValidationError } from './server/upload-validation.js';
+import { ensureImageThumbnail, originalNameFromThumbnail } from './server/image-thumbnail.js';
 import {
   streamValidatedVideo,
   validateVideoMetadata,
@@ -103,6 +104,10 @@ app.use('/api', (_req, res, next) => {
 // Runtime uploads may live outside the release directory on persistent storage.
 const uploads = uploadConfiguration(process.env);
 const videoUploads = videoUploadConfiguration(process.env);
+type AsyncRoute = (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<unknown>;
+const asyncRoute = (handler: AsyncRoute): express.RequestHandler => (req, res, next) => {
+  void Promise.resolve(handler(req, res, next)).catch(next);
+};
 try {
   fs.mkdirSync(uploads.directory, { recursive: true, mode: 0o750 });
   fs.accessSync(uploads.directory, fs.constants.W_OK);
@@ -110,19 +115,35 @@ try {
   safeLogError('Configured upload directory is unavailable or not writable.', error);
   throw new Error('UPLOAD_DIR must reference a writable directory.');
 }
+app.get(`${uploads.publicPath}/thumbnails/:filename`, asyncRoute(async (req, res) => {
+  const originalName = originalNameFromThumbnail(req.params.filename);
+  if (!originalName) return res.status(400).type('text/plain').send('Invalid thumbnail path');
+
+  try {
+    const thumbnailPath = await ensureImageThumbnail(uploads.directory, originalName);
+    res.set({
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Content-Type': 'image/webp',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return res.sendFile(thumbnailPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return res.status(404).type('text/plain').send('Thumbnail source not found');
+    }
+    safeLogError('Unable to create image thumbnail.', error, safeRequestContext(req as RequestWithId));
+    return res.status(500).type('text/plain').send('Thumbnail unavailable');
+  }
+}));
+
 app.use(uploads.publicPath, express.static(uploads.directory, {
   dotfiles: 'deny',
   index: false,
   setHeaders: (res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'public, max-age=604800');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   },
 }));
-
-type AsyncRoute = (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<unknown>;
-const asyncRoute = (handler: AsyncRoute): express.RequestHandler => (req, res, next) => {
-  void Promise.resolve(handler(req, res, next)).catch(next);
-};
 
 // Upload endpoint for admins: accepts JSON { filename, data } where data is a data URL (base64).
 app.post('/api/admin/upload', requireAdmin, requireCsrf, asyncRoute(async (req, res) => {
@@ -145,7 +166,10 @@ app.post('/api/admin/upload', requireAdmin, requireCsrf, asyncRoute(async (req, 
   try {
     await fs.promises.writeFile(outPath, decoded.buffer, { flag: 'wx', mode: 0o640 });
     const url = `${uploads.publicPath}/${outName}`;
-    res.json({ url });
+    await ensureImageThumbnail(uploads.directory, outName).catch(error => {
+      safeLogError('Uploaded image saved, but eager thumbnail generation failed; it will retry on first request.', error, safeRequestContext(req as RequestWithId));
+    });
+    res.json({ url, thumbnail_url: `${uploads.publicPath}/thumbnails/${encodeURIComponent(outName)}.webp` });
   } catch (error) {
     safeLogError('Unable to save uploaded image.', error, safeRequestContext(req as RequestWithId));
     res.status(500).json({ error: 'Failed to save file' });

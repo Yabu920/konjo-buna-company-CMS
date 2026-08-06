@@ -125,6 +125,7 @@ export default function GalleryMediaUpload({
     const request = new XMLHttpRequest();
     requestRef.current = request;
     request.open('POST', '/api/admin/upload/video');
+    request.timeout = 120_000;
     request.setRequestHeader('Content-Type', selectedFile.type);
     request.setRequestHeader('X-File-Name', encodeURIComponent(selectedFile.name));
     request.setRequestHeader('X-CSRF-Token', getCsrfToken());
@@ -149,6 +150,11 @@ export default function GalleryMediaUpload({
       requestRef.current = null;
       setStatus('error');
       setMessage('Video upload failed because of a network error.');
+    };
+    request.ontimeout = () => {
+      requestRef.current = null;
+      setStatus('error');
+      setMessage('Video upload timed out after 2 minutes. Check the connection and retry.');
     };
     request.onabort = () => {
       requestRef.current = null;
@@ -218,10 +224,10 @@ export default function GalleryMediaUpload({
               <button
                 type="button"
                 onClick={uploadVideo}
-                disabled={!selectedFile || status === 'uploading' || status === 'error'}
+                disabled={!selectedFile || status === 'uploading'}
                 className="min-h-11 inline-flex items-center gap-2 rounded-lg bg-[#7E4015] px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Upload className="h-4 w-4" aria-hidden="true" /> Upload video
+                <Upload className="h-4 w-4" aria-hidden="true" /> {status === 'error' || status === 'cancelled' ? 'Retry video upload' : 'Upload video'}
               </button>
               {status === 'uploading' && (
                 <button type="button" onClick={() => requestRef.current?.abort()} className="min-h-11 inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-xs font-bold text-gray-700">
