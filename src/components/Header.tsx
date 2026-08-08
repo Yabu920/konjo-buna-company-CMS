@@ -83,8 +83,8 @@ export default function Header({
                 className="w-full h-full rounded-none object-cover"
               />
             </div>
-            <div className="hidden min-[1536px]:block">
-              <span className="font-serif text-xl tracking-tight leading-none font-bold text-white group-hover:text-[#2D2A26] transition-colors uppercase whitespace-nowrap">
+            <div className="block">
+              <span className="font-serif text-sm sm:text-base xl:text-xl tracking-tight leading-none font-bold text-white group-hover:text-[#2D2A26] transition-colors uppercase whitespace-nowrap">
                 {siteTitle}
               </span>
             </div>

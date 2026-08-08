@@ -571,7 +571,7 @@ export default function App() {
                       }}
                       className="px-8 py-4.5 border rounded-2xl bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] transition-colors  font-bold text-xs uppercase tracking-widest shadow-md"
                     >
-                      {lang === 'en' ? 'Export Inquiry' : 'የኤክስፖርት ጥያቄ'}
+                      {lang === 'en' ? ' Inquiry' : ' ጥያቄ'}
                     </button>
                     <button 
                       onClick={() => navigateTo('products')}
@@ -584,13 +584,13 @@ export default function App() {
                   {/* High density stats row */}
                   <div className="mt-12 pt-8 border-t border-[#2D2A26]/10 grid grid-cols-3 gap-4">
                     <div>
-                      <div className="text-2xl sm:text-3xl font-serif font-bold text-[#7E4015]">100+</div>
+                      <div className="text-2xl sm:text-3xl font-serif font-bold text-[#7E4015]">100+ <span className="text-[9px] sm:text-[16px] font-bold leading-tight">Customers</span></div>
                       <div className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 font-bold leading-tight">Hotel & Supermarket Customers</div>
                     </div>
-                    <div>
+                    {/* <div>
                       <div className="text-2xl sm:text-3xl font-serif font-bold text-[#2D2A26]">18k</div>
                       <div className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 font-bold leading-tight">Tons Exported</div>
-                    </div>
+                    </div> */}
                     <div>
                       <div className="text-2xl sm:text-3xl font-serif font-bold text-[#2D2A26]">Grade A</div>
                       <div className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 font-bold leading-tight">Quality Rating</div>
@@ -1271,7 +1271,7 @@ export default function App() {
             
             {/* Title */}
             <div className="text-center max-w-3xl mx-auto space-y-3">
-              <span className="text-xs font-bold tracking-[0.25em] text-[#7E4015] uppercase block">Global Sourcing Logistics</span>
+              <span className="text-xs font-bold tracking-[0.25em] text-[#7E4015] uppercase block">OUR SERVICE</span>
               <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[#2D2A26] leading-tight">{t.services_title}</h1>
               <p className="text-xs text-gray-500 leading-relaxed">{t.services_subtitle}</p>
             </div>
