@@ -584,8 +584,8 @@ export default function App() {
                   {/* High density stats row */}
                   <div className="mt-12 pt-8 border-t border-[#2D2A26]/10 grid grid-cols-3 gap-4">
                     <div>
-                      <div className="text-2xl sm:text-3xl font-serif font-bold text-[#7E4015]">100+ <span className="text-[9px] sm:text-[16px] font-bold leading-tight">Customers</span></div>
-                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 font-bold leading-tight">Hotel & Supermarket Customers</div>
+                      <div className="text-2xl sm:text-3xl font-serif font-bold text-[#7E4015]">100+ <span className="text-[9px] sm:text-[12px] font-bold leading-tight">Customers</span></div>
+                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 font-bold leading-tight">Hotel & Supermarket </div>
                     </div>
                     {/* <div>
                       <div className="text-2xl sm:text-3xl font-serif font-bold text-[#2D2A26]">18k</div>
