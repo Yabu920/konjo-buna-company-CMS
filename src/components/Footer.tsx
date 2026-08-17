@@ -201,9 +201,7 @@ export default function Footer({ onNavigate, lang, onSubscribe, settings }: Foot
         {/* Divider */}
         <div className="border-t border-[#F8F1E7]/10 pt-8 mt-8 flex flex-col md:flex-row items-center justify-between text-[10px] tracking-widest uppercase text-[#F8F1E7]/40 font-bold gap-4">
           <div className="flex gap-6">
-            {/* <span>Developed by Yeabsra Abera</span>
-            <span>ISO 22000 Certified</span>
-            <span>Rainforest Alliance</span> */}
+            {/* <span>Developed by Yeabsra Abera</span> */}
           </div>
           <div className="flex items-center gap-4">
             <span>© 2026 Konjo-Buna & Eagle</span>

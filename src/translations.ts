@@ -103,6 +103,27 @@ export interface TranslationDict {
   contact_msg: string;
   contact_submit_btn: string;
   contact_success_alert: string;
+  location_awassa: string;
+  location_addis_abeba: string;
+  request_sample: string;
+  request_type: string;
+  sample_request: string;
+  bulk_inquiry: string;
+  sample_size: string;
+  samples_paid: string;
+  sample_100g: string;
+  sample_200g: string;
+  buyer_information: string;
+  export_snapshot_title: string;
+  export_snapshot_subtitle: string;
+  buyer_moq: string;
+  buyer_port: string;
+  buyer_processing: string;
+  buyer_origins: string;
+  buyer_cta_title: string;
+  buyer_cta_desc: string;
+  partners_title: string;
+  partners_subtitle: string;
   faq_title: string;
   faq_subtitle: string;
   search_results_title: string;
@@ -123,8 +144,8 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     search_placeholder: 'Search coffee, services, news...',
     hero_title: 'From Ethiopian Highlands to the Global Cup',
     hero_subtitle: 'Sourcing, processing, and exporting single-origin Arabica beans directly from Yirgachefe, Sidama, Werka and Guji washing stations.',
-    hero_cta_products: 'Explore Our Coffees',
-    hero_cta_inquiry: 'Submit Export Inquiry',
+    hero_cta_products: 'View Products',
+    hero_cta_inquiry: 'Request Sample',
     section_featured_products: 'Featured Single-Origins',
     section_featured_subtitle: 'Discover our hand-sorted micro-lots and specialty green coffees celebrated by global roasters.',
     view_all: 'View All',
@@ -190,7 +211,7 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     product_packaging: 'Standard Packaging',
     product_availability: 'Contract Availability',
     product_price: 'Pricing Term',
-    product_send_inquiry: 'Submit Export Inquiry for this Lot',
+    product_send_inquiry: 'Request Sample',
     product_back_list: 'Back to Catalogue',
     product_related_title: 'Related Single-Origins',
     services_title: 'Integrated Coffee Services',
@@ -206,8 +227,8 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     gallery_subtitle: 'A visual journey across our highland farms, water mills, traditional ceremonies, and packaging facilities.',
     contact_title: 'Initiate Coffee Partnerships',
     contact_subtitle: 'Contact our export headquarters in Awassa or submit a formal inquiry to request samples and FOB price lists.',
-    contact_form_title: 'Demand Inquiry / Sample Request Form',
-    contact_form_desc: 'Are you a commercial roaster or importer? Provide your requirements below to receive coffee samples, QA cupping reports, and FOB Djibouti pricing.',
+    contact_form_title: 'Coffee Inquiry & Sample Request',
+    contact_form_desc: 'Request a paid 100 g or 200 g sample, or send your bulk export requirements.',
     contact_comp_name: 'Company / Business Name',
     contact_cont_name: 'Contact Person Name',
     contact_email: 'Business Email Address',
@@ -218,6 +239,27 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     contact_msg: 'Detailed Message & Specifications',
     contact_submit_btn: 'Submit Inquiry / Request Samples',
     contact_success_alert: 'Thank you! Your export inquiry has been logged successfully. Our trade specialist in Addis Ababa will email you cupping logs and contract options within 24 hours.',
+    location_awassa: 'Awassa',
+    location_addis_abeba: 'Addis Ababa',
+    request_sample: 'Order Now',
+    request_type: 'Request Type',
+    sample_request: 'Sample Request',
+    bulk_inquiry: 'Bulk / Export Inquiry',
+    sample_size: 'Sample Size',
+    samples_paid: 'Samples are paid',
+    sample_100g: '100 g',
+    sample_200g: '200 g',
+    buyer_information: 'Buyer Information',
+    export_snapshot_title: 'Export Information',
+    export_snapshot_subtitle: 'Key trade information for importers and wholesale buyers.',
+    buyer_moq: 'MOQ',
+    buyer_port: 'Port',
+    buyer_processing: 'Processing',
+    buyer_origins: 'Origins',
+    buyer_cta_title: 'Ready to Evaluate Our Coffee?',
+    buyer_cta_desc: 'Request a paid sample or discuss your sourcing requirements with our team.',
+    partners_title: 'Partners & Customers',
+    partners_subtitle: 'Trusted by Ethiopian businesses and hospitality partners.',
     faq_title: 'Frequently Asked Questions',
     faq_subtitle: 'Essential details regarding shipping minimums, sample logistics, custom fermentations, and payment structures.',
     search_results_title: 'Search results for',
@@ -237,7 +279,7 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     hero_title: 'ከኢትዮጵያ ደጋማ ቦታዎች ወደ ዓለም አቀፉ ጽዋ',
     hero_subtitle: 'የአንድ አካባቢ የአረቢካ ቡና ፍሬዎችን በቀጥታ ከይርጋጨፌ፣ ከሲዳሞ እና ከወርቃ ማጠቢያ ጣቢያዎች በጥራት አዘጋጅቶ መላክ።',
     hero_cta_products: 'ቡናዎቻችንን ይመልከቱ',
-    hero_cta_inquiry: 'የኤክስፖርት ጥያቄ ያስገቡ',
+    hero_cta_inquiry: 'ናሙና ይጠይቁ',
     section_featured_products: 'የተመረጡ ልዩ ቡናዎች',
     section_featured_subtitle: 'በዓለም አቀፍ ደረጃ አድናቆትን ያተረፉ በጥንቃቄ በእጅ የተለዩ እና ለየት ያሉ ጥሬ ቡናዎቻችንን ያግኙ።',
     view_all: 'ሁሉንም ይመልከቱ',
@@ -300,7 +342,7 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     product_packaging: 'መደበኛ ማሸጊያ',
     product_availability: 'የኮንትራት ዝግጁነት',
     product_price: 'የዋጋ ሁኔታ',
-    product_send_inquiry: 'ለዚህ ምርት የኤክስፖርት ጥያቄ ያስገቡ',
+    product_send_inquiry: 'ናሙና ይጠይቁ',
     product_back_list: 'ወደ ምርቶች ዝርዝር ተመለስ',
     product_related_title: 'ተዛማጅ የአንድ አካባቢ ቡናዎች',
     services_title: 'የተቀናጁ የቡና አገልግሎቶች',
@@ -316,8 +358,8 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     gallery_subtitle: 'በደጋ እርሻዎቻችን፣ በውሃ ማጠቢያዎች፣ በባህላዊ ስነ-ስርዓቶች እና በማሸጊያ ተቋሞቻችን ላይ የተደረገ የእይታ ጉዞ።',
     contact_title: 'የቡና አጋርነት ይጀምሩ',
     contact_subtitle: 'በአዲስ አበባ የሚገኘውን ዋና የኤክስፖርት መስሪያ ቤታችንን ያነጋግሩ ወይም ናሙናዎችን እና የዋጋ ዝርዝሮችን ለመጠየቅ መደበኛ ጥያቄ ያስገቡ።',
-    contact_form_title: 'ጥያቄ እና የናሙና መጠየቂያ ቅጽ',
-    contact_form_desc: 'እርስዎ የንግድ ቡና ቆይ ወይም አስመጪ ነዎት? የቡና ናሙናዎችን፣ የጥራት ሪፖርቶችን እና የFOB ጅቡቲ ዋጋዎችን ለማግኘት ፍላጎቶችዎን ከዚህ በታች ያቅርቡ።',
+    contact_form_title: 'የቡና ጥያቄ እና የናሙና መጠየቂያ',
+    contact_form_desc: 'በክፍያ 100 ግ ወይም 200 ግ ናሙና ይጠይቁ፣ ወይም የጅምላ ኤክስፖርት ፍላጎትዎን ይላኩ።',
     contact_comp_name: 'የድርጅት / የንግድ ስም',
     contact_cont_name: 'የእውቂያ ሰው ስም',
     contact_email: 'የድርጅት ኢሜይል አድራሻ',
@@ -328,6 +370,27 @@ export const translations: Record<'en' | 'am', TranslationDict> = {
     contact_msg: 'ዝርዝር መልዕክት እና መግለጫዎች',
     contact_submit_btn: 'ጥያቄ ያስገቡ / ናሙናዎችን ይጠይቁ',
     contact_success_alert: 'እናመሰግናለን! የኤክስፖርት ጥያቄዎ በተሳካ ሁኔታ ተመዝግቧል። በአዲስ አበባ የሚገኘው የንግድ ባለሙያችን በ24 ሰዓት ውስጥ የጥራት መረጃዎችን እና የኮንትራት አማራጮችን በኢሜይል ይልክልዎታል።',
+    location_awassa: 'አዋሳ',
+    location_addis_abeba: 'አዲስ አበባ',
+    request_sample: 'አሁን ይዘዙ',
+    request_type: 'የጥያቄ ዓይነት',
+    sample_request: 'የናሙና ጥያቄ',
+    bulk_inquiry: 'የጅምላ / የኤክስፖርት ጥያቄ',
+    sample_size: 'የናሙና መጠን',
+    samples_paid: 'ናሙናዎች በክፍያ ናቸው',
+    sample_100g: '100 ግ',
+    sample_200g: '200 ግ',
+    buyer_information: 'የገዢ መረጃ',
+    export_snapshot_title: 'የኤክስፖርት አጭር መረጃ',
+    export_snapshot_subtitle: 'ለአስመጪዎች እና ለጅምላ ገዢዎች ቁልፍ የንግድ መረጃ።',
+    buyer_moq: 'ዝቅተኛ ትዕዛዝ',
+    buyer_port: 'ወደብ',
+    buyer_processing: 'የማቀነባበሪያ ዘዴ',
+    buyer_origins: 'የቡና አካባቢዎች',
+    buyer_cta_title: 'ቡናችንን ለመገምገም ዝግጁ ነዎት?',
+    buyer_cta_desc: 'በክፍያ ናሙና ይጠይቁ ወይም የግዢ ፍላጎትዎን ከቡድናችን ጋር ይወያዩ።',
+    partners_title: 'አጋሮች እና ደንበኞች',
+    partners_subtitle: 'በኢትዮጵያ የንግድ እና የሆቴል አጋሮች የታመንን።',
     faq_title: 'የተለመዱ ጥያቄዎች',
     faq_subtitle: 'ስለ አነስተኛ ጭነት መጠኖች፣ የናሙና ዝግጅት፣ ብጁ የፍላት ዘዴዎች እና የክፍያ ሁኔታዎች መሠረታዊ መረጃዎች።',
     search_results_title: 'የፍለጋ ውጤቶች ለ',
@@ -339,14 +402,14 @@ export const faqsList = [
   {
     q_en: 'What is your minimum order quantity (MOQ) for export?',
     q_am: 'ለኤክስፖርት ዝቅተኛው የትዕዛዝ መጠን (MOQ) ስንት ነው?',
-    a_en: 'For standard single-origin green coffee lots, our MOQ is 10 metric tons (around 160 Jute bags). However, for micro-lots and specialty vacuum-packed options, we can accommodate orders starting from 1 metric ton (33 bags) via shared container cargo (LCL).',
-    a_am: 'ለመደበኛ የአንድ አካባቢ ጥሬ ቡና፣ የእኛ አነስተኛ መጠን 10 ሜትሪክ ቶን (ወደ 160 የጁት ከረጢት) ነው። ሆኖም ግን፣ ለልዩ ማይክሮ-ሎት እና በቫኪዩም ለታሸጉ ምርቶች፣ በጋራ ኮንቴይነር (LCL) በኩል ከ1 ሜትሪክ ቶን (33 ከረጢት) ጀምሮ ትዕዛዞችን ማስተናገድ እንችላለን።'
+    a_en: 'Our minimum order quantity for bulk export is one 40 ft container. Share your preferred origin, processing method, destination, and target FOB range through the bulk inquiry form.',
+    a_am: 'ለጅምላ ኤክስፖርት ዝቅተኛው የትዕዛዝ መጠናችን አንድ 40 ጫማ ኮንቴይነር ነው። የሚፈልጉትን የቡና አካባቢ፣ የማቀነባበሪያ ዘዴ፣ መድረሻ እና የFOB ዋጋ በጅምላ ጥያቄ ቅጹ ያሳውቁን።'
   },
   {
     q_en: 'How do you ship coffee samples to international buyers?',
     q_am: 'የቡና ናሙናዎችን ለአለም አቀፍ ገዢዎች እንዴት ይልካሉ?',
-    a_en: 'We ship 300g to 500g green coffee samples (both washed and natural) worldwide via DHL or FedEx Express. Samples include full QA cupping profiles and origin trace sheets. Sample shipping is typically completed within 3 to 5 business days.',
-    a_am: 'ከ300ግ እስከ 500ግ ጥሬ የቡና ናሙናዎችን (የታጠበ እና ተፈጥሯዊ) በDHL ወይም በFedEx ኤክስፕረስ አማካኝነት በዓለም ዙሪያ እንልካለን። ናሙናዎች የተሟላ የጥራት መመዘኛዎችን እና የአመጣጥ መከታተያ ወረቀቶችን ያካትታሉ። የናሙና ጭነት አብዛኛውን ጊዜ በ3 እስከ 5 የስራ ቀናት ውስጥ ይጠናቀቃል።'
+    a_en: 'International buyers can request a paid 100 g or 200 g sample. Select the coffee lot and sample size in the Sample Request form, then provide your business and destination details.',
+    a_am: 'ዓለም አቀፍ ገዢዎች በክፍያ 100 ግ ወይም 200 ግ ናሙና መጠየቅ ይችላሉ። በናሙና ጥያቄ ቅጹ የቡና ሎቱን እና የናሙናውን መጠን ይምረጡ፣ ከዚያም የድርጅትዎን እና የመድረሻውን መረጃ ያስገቡ።'
   },
   {
     q_en: 'Do you offer customized fermentation or processing on request?',

@@ -5,7 +5,11 @@ export interface AppRoute {
   productKey: string | null;
   newsKey: string | null;
   searchQuery: string;
+  inquiryType: 'sample' | 'bulk' | null;
+  inquiryProductKey: string | null;
 }
+
+const emptyInquiryRoute = { inquiryType: null, inquiryProductKey: null } as const;
 
 const STATIC_PATHS: Partial<Record<ViewType, string>> = {
   home: '/',
@@ -35,22 +39,26 @@ export function parseAppRoute(pathname?: string, search?: string): AppRoute {
   const normalized = resolvedPathname.replace(/\/+$/, '') || '/';
   const productMatch = /^\/products\/([^/]+)$/.exec(normalized);
   if (productMatch) {
-    return { view: 'product-detail', productKey: safeSegment(productMatch[1]), newsKey: null, searchQuery: '' };
+    return { view: 'product-detail', productKey: safeSegment(productMatch[1]), newsKey: null, searchQuery: '', ...emptyInquiryRoute };
   }
 
   const newsMatch = /^\/news\/([^/]+)$/.exec(normalized);
   if (newsMatch) {
-    return { view: 'news', productKey: null, newsKey: safeSegment(newsMatch[1]), searchQuery: '' };
+    return { view: 'news', productKey: null, newsKey: safeSegment(newsMatch[1]), searchQuery: '', ...emptyInquiryRoute };
   }
 
   if (normalized === '/admin/reset-password' || normalized === '/admin') {
-    return { view: 'admin', productKey: null, newsKey: null, searchQuery: '' };
+    return { view: 'admin', productKey: null, newsKey: null, searchQuery: '', ...emptyInquiryRoute };
   }
 
   const entry = Object.entries(STATIC_PATHS).find(([, path]) => path === normalized);
   const view = (entry?.[0] as ViewType | undefined) ?? 'home';
-  const query = view === 'search' ? new URLSearchParams(resolvedSearch).get('q')?.trim() ?? '' : '';
-  return { view, productKey: null, newsKey: null, searchQuery: query };
+  const parameters = new URLSearchParams(resolvedSearch);
+  const query = view === 'search' ? parameters.get('q')?.trim() ?? '' : '';
+  const rawInquiryType = view === 'contact' ? parameters.get('type') : null;
+  const inquiryType = rawInquiryType === 'sample' || rawInquiryType === 'bulk' ? rawInquiryType : null;
+  const inquiryProductKey = view === 'contact' ? safeSegment(parameters.get('product') ?? '') : null;
+  return { view, productKey: null, newsKey: null, searchQuery: query, inquiryType, inquiryProductKey };
 }
 
 export function pathForView(view: ViewType): string {
@@ -63,4 +71,10 @@ export function productPath(idOrSlug: string): string {
 
 export function newsPath(idOrSlug: string): string {
   return `/news/${encodeURIComponent(idOrSlug)}`;
+}
+
+export function contactInquiryPath(type: 'sample' | 'bulk', productKey?: string): string {
+  const parameters = new URLSearchParams({ type });
+  if (productKey) parameters.set('product', productKey);
+  return `/contact?${parameters.toString()}`;
 }

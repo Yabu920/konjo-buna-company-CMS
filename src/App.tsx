@@ -2,7 +2,8 @@ import React, { lazy, startTransition, Suspense, useEffect, useRef, useState } f
 import { 
   ArrowRight, MapPin, Mail, Phone, Calendar, User, 
   Search, Filter, Coffee, ChevronRight, CheckCircle, 
-  ChevronLeft, X, ExternalLink, Globe, Layers, Handshake, HelpCircle
+  ChevronLeft, X, ExternalLink, Globe, Layers, Handshake, HelpCircle,
+  PackageCheck, Ship, Workflow, MapPinned
 } from 'lucide-react';
 import { Product, ProductCategory, Service, NewsPost, GalleryImage, ViewType, Inquiry, SiteSettings } from './types.js';
 import { translations, faqsList } from './translations.js';
@@ -15,17 +16,148 @@ import image3 from '../images/IMG_8580.webp';
 import team1 from '../images/team/team1.webp';
 import team2 from '../images/team/team2.webp';
 import team3 from '../images/team/team3.webp';
+import allmartLogo from '../images/logos/allmart.jpg';
+import freshCornerLogo from '../images/logos/fresh-corner.png';
+import centralHotelLogo from '../images/logos/centralhotel1.jpg';
+import dashenBankLogo from '../images/logos/dashen-bank.png';
+import safewayLogo from '../images/logos/safeway.jpg';
 import { csrfHeaders } from './auth-client.ts';
 import { inquiryProductValues } from './inquiry.ts';
-import { newsPath, parseAppRoute, pathForView, productPath } from './routing.ts';
+import { contactInquiryPath, newsPath, parseAppRoute, pathForView, productPath } from './routing.ts';
 import { updateClientSeo } from './seo.ts';
 import type { PublicDataMutation } from './components/AdminPanel.tsx';
 
 const AdminPanel = lazy(() => import('./components/AdminPanel.tsx'));
 
 const video = 'https://www.youtube.com/embed/34i7bXsD_ZI?autoplay=1&mute=1&loop=1&playlist=34i7bXsD_ZI&controls=1&playsinline=1&rel=0';
-const googleMapsShareUrl = 'https://maps.app.goo.gl/XBHCdsmYUY4wgDe6A?g_st=atm';
-const googleMapsEmbedUrl = 'https://maps.google.com/maps?q=7.0161207,38.4771557&z=16&output=embed';
+const awassaMapsEmbedUrl = 'https://maps.google.com/maps?q=7.0161207,38.4771557&z=16&output=embed';
+const addisAbabaMapsEmbedUrl = 'https://maps.google.com/maps?q=9.005088,38.767241&z=16&output=embed';
+const whatsappNumber = '251939808215';
+
+function WhatsAppIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 448 512" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32 101.5 32 1.9 131.6 1.9 254c0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.8l-6.7-4-69.8 18.3 18.6-68-4.4-7c-18.5-29.4-28.2-63.4-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.1c-5.5-2.8-32.8-16.1-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" />
+    </svg>
+  );
+}
+const availablePartnerLogos = [
+  { name: 'Allmart', src: allmartLogo, width: 500, height: 499 },
+  { name: 'Safeway', src: safewayLogo, width: 594, height: 420 },
+  { name: 'Central Hotel', src: centralHotelLogo, width: 518, height: 509 },
+  { name: 'Dashen Bank', src: dashenBankLogo, width: 150, height: 149 },
+  { name: 'Fresh Corner', src: freshCornerLogo, width: 270, height: 240 },
+] as const;
+
+function PartnerLogoCarousel({ label }: { label: string }) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [transitionEnabled, setTransitionEnabled] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const logos = availablePartnerLogos;
+  const repeatedLogos = [...logos, ...logos];
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updatePreference = () => setReducedMotion(media.matches);
+    updatePreference();
+    media.addEventListener('change', updatePreference);
+    return () => media.removeEventListener('change', updatePreference);
+  }, []);
+
+  useEffect(() => {
+    if (paused || reducedMotion) return;
+    const timer = window.setInterval(() => setIndex(current => current + 1), 4000);
+    return () => window.clearInterval(timer);
+  }, [paused, reducedMotion]);
+
+  const resetLoop = () => {
+    if (index < logos.length) return;
+    setTransitionEnabled(false);
+    setIndex(0);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => setTransitionEnabled(true)));
+  };
+
+  const movePrevious = () => {
+    if (index > 0) {
+      setIndex(current => current - 1);
+      return;
+    }
+    setTransitionEnabled(false);
+    setIndex(logos.length);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      setTransitionEnabled(true);
+      setIndex(logos.length - 1);
+    }));
+  };
+
+  return (
+    <div
+      className="relative mt-9"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={event => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
+      }}
+      aria-label={label}
+      role="region"
+    >
+      <div className="overflow-hidden px-1" id="partner-logo-carousel">
+        <div
+          ref={trackRef}
+          className={`flex w-[400%] md:w-[266.6667%] lg:w-[200%] ${transitionEnabled && !reducedMotion ? 'transition-transform duration-700 ease-in-out' : ''}`}
+          style={{ transform: `translateX(-${index * (100 / repeatedLogos.length)}%)` }}
+          onTransitionEnd={resetLoop}
+        >
+          {repeatedLogos.map((partner, logoIndex) => (
+            <div
+              key={`${partner.name}-${logoIndex}`}
+              className="shrink-0 px-2 sm:px-3"
+              style={{ flexBasis: `${100 / repeatedLogos.length}%` }}
+              aria-hidden={logoIndex >= logos.length}
+            >
+              <div className="flex h-44 items-center justify-center rounded-2xl border border-[#7E4015]/12 bg-[#F8F1E7] p-4 shadow-[0_12px_32px_-24px_rgba(45,42,38,0.5)] sm:h-48 sm:p-5">
+                <img
+                  src={partner.src}
+                  width={partner.width}
+                  height={partner.height}
+                  loading="lazy"
+                  className="max-h-36 w-full object-contain sm:max-h-40"
+                  alt={logoIndex < logos.length ? `${partner.name} logo` : ''}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 flex items-center justify-center gap-5">
+        <button type="button" onClick={movePrevious} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#2D2A26]/15 bg-white text-[#2D2A26] shadow-sm transition-colors hover:border-[#7E4015] hover:text-[#7E4015]" aria-label="Previous partner logos">
+          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+        </button>
+        <div className="flex items-center gap-2" aria-label="Partner carousel pages">
+          {logos.map((partner, dotIndex) => (
+            <button
+              key={partner.name}
+              type="button"
+              onClick={() => setIndex(dotIndex)}
+              className="group inline-flex h-11 w-6 items-center justify-center"
+              aria-label={`Show partner logo ${dotIndex + 1}`}
+              aria-current={index % logos.length === dotIndex ? 'true' : undefined}
+            >
+              <span className={`h-2.5 w-2.5 rounded-full transition-colors ${index % logos.length === dotIndex ? 'bg-[#7E4015]' : 'bg-[#2D2A26]/20 group-hover:bg-[#2D2A26]/40'}`} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={() => setIndex(current => current + 1)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#2D2A26]/15 bg-white text-[#2D2A26] shadow-sm transition-colors hover:border-[#7E4015] hover:text-[#7E4015]" aria-label="Next partner logos">
+          <ChevronRight className="h-5 w-5" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const leadershipTeam = [
   {
@@ -154,6 +286,8 @@ export default function App() {
   const [inquiryError, setInquiryError] = useState<string | null>(null);
   const [submittingInquiry, setSubmittingInquiry] = useState(false);
   const [inquiryProductId, setInquiryProductId] = useState<string>('');
+  const [inquiryType, setInquiryType] = useState<'sample' | 'bulk'>(() => initialRoute.inquiryType ?? 'bulk');
+  const [inquiryProductKey, setInquiryProductKey] = useState<string | null>(initialRoute.inquiryProductKey);
 
   // Admin authentication state
   const [adminUser, setAdminUser] = useState<{ id: string; username: string; email: string | null; name: string; role: string } | null>(null);
@@ -348,6 +482,20 @@ export default function App() {
   const activeNewsPost = news.find(post => post.slug === selectedNewsSlug || post.id === selectedNewsSlug);
 
   useEffect(() => {
+    if (!inquiryProductKey || products.length === 0) return;
+    const requestedProduct = products.find(product => product.id === inquiryProductKey || product.slug === inquiryProductKey);
+    if (requestedProduct) setInquiryProductId(requestedProduct.id);
+  }, [inquiryProductKey, products]);
+
+  useEffect(() => {
+    if (currentView !== 'contact' || inquiryType !== 'sample') return;
+    const timer = window.setTimeout(() => {
+      document.getElementById('export-inquiry-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [currentView, inquiryType, inquiryProductId]);
+
+  useEffect(() => {
     updateClientSeo({ view: currentView, lang, product: activeProduct, newsPost: activeNewsPost });
   }, [currentView, lang, activeProduct, activeNewsPost]);
 
@@ -383,6 +531,8 @@ export default function App() {
       setSelectedProductSlug(route.productKey);
       setSelectedNewsSlug(route.newsKey);
       setSearchQuery(route.searchQuery);
+      setInquiryType(route.inquiryType ?? 'bulk');
+      setInquiryProductKey(route.inquiryProductKey);
       if (route.searchQuery) void performGlobalSearch(route.searchQuery, false);
       window.scrollTo({ top: 0, behavior: 'auto' });
     };
@@ -400,6 +550,7 @@ export default function App() {
 
     const formData = new FormData(form);
     const productValues = inquiryProductValues(products, inquiryProductId);
+    const sampleSize = inquiryType === 'sample' ? String(formData.get('sample_size') ?? '') : '';
     const body = {
       company_name: formData.get('company_name') as string,
       contact_name: formData.get('contact_name') as string,
@@ -407,9 +558,9 @@ export default function App() {
       phone: formData.get('phone') as string,
       country: formData.get('country') as string,
       coffee_type: productValues.coffee_type,
-      volume_required: formData.get('volume_required') as string,
-      target_price: formData.get('target_price') as string,
-      message: formData.get('message') as string,
+      volume_required: inquiryType === 'sample' ? `Paid sample - ${sampleSize}` : formData.get('volume_required') as string,
+      target_price: inquiryType === 'sample' ? 'Paid sample' : formData.get('target_price') as string,
+      message: `${inquiryType === 'sample' ? `Request type: Paid sample (${sampleSize})` : 'Request type: Bulk / Export Inquiry'}\n${formData.get('message') as string}`,
       product_id: productValues.product_id,
     };
 
@@ -423,6 +574,7 @@ export default function App() {
         setInquirySuccess(true);
         form.reset();
         setInquiryProductId('');
+        setInquiryProductKey(null);
       } else {
         const response = await res.json().catch(() => ({}));
         setInquiryError(response.error || 'The inquiry could not be sent. Please try again.');
@@ -468,6 +620,13 @@ export default function App() {
   // Navigation controller helper
   const navigateTo = (view: ViewType, explicitPath = pathForView(view)) => {
     closeLightbox();
+    if (view === 'contact') {
+      const target = new URL(explicitPath, window.location.origin);
+      const route = parseAppRoute(target.pathname, target.search);
+      setInquiryType(route.inquiryType ?? 'bulk');
+      setInquiryProductKey(route.inquiryProductKey);
+      if (!route.inquiryProductKey) setInquiryProductId('');
+    }
     if (view !== 'product-detail') setSelectedProductSlug(null);
     if (view !== 'news' || explicitPath === '/news') setSelectedNewsSlug(null);
     setCurrentView(view);
@@ -489,8 +648,32 @@ export default function App() {
 
   const triggerInquiryForProduct = (prod: Product) => {
     setInquiryProductId(prod.id);
-    navigateTo('contact');
+    setInquiryProductKey(prod.slug);
+    setInquiryType('sample');
+    navigateTo('contact', contactInquiryPath('sample', prod.slug));
   };
+
+  const requestSample = () => {
+    setInquiryType('sample');
+    setInquiryProductKey(null);
+    setInquiryProductId('');
+    navigateTo('contact', contactInquiryPath('sample'));
+  };
+
+  const changeInquiryType = (type: 'sample' | 'bulk') => {
+    setInquiryType(type);
+    const product = products.find(item => item.id === inquiryProductId);
+    setInquiryProductKey(product?.slug ?? null);
+    window.history.replaceState({}, '', contactInquiryPath(type, product?.slug));
+  };
+
+  const whatsappProductName = currentView === 'product-detail' && activeProduct
+    ? (lang === 'en' ? activeProduct.title_en : activeProduct.title_am)
+    : null;
+  const whatsappMessage = whatsappProductName
+    ? `Hello Konjo Buna, I'm interested in ${whatsappProductName} and would like to request a sample.`
+    : `Hello Konjo Buna, I'm interested in your Ethiopian coffee products and would like more information.`;
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
     <div className="min-h-screen bg-[#F8F1E7] text-[#2D2A26] selection:bg-[#7E4015] selection:text-[#F8F1E7] font-sans flex flex-col justify-between">
@@ -564,20 +747,18 @@ export default function App() {
                   </p>
 
                   <div className="flex flex-wrap gap-4 pt-4">
-                    <button 
-                      onClick={() => {
-                        setInquiryProductId('');
-                        navigateTo('contact');
-                      }}
+                    <button
+                      id="hero-request-sample"
+                      onClick={requestSample}
                       className="px-8 py-4.5 border rounded-2xl bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] transition-colors  font-bold text-xs uppercase tracking-widest shadow-md"
                     >
-                      {lang === 'en' ? ' Inquiry' : ' ጥያቄ'}
+                      {t.request_sample}
                     </button>
                     <button 
                       onClick={() => navigateTo('products')}
                       className="px-8 py-4.5 border border-[#2D2A26] text-[#2D2A26] hover:bg-[#7E4015]/10 hover:border-[#7E4015] hover:text-[#7E4015] transition-all rounded-2xl font-bold text-xs uppercase tracking-widest"
                     >
-                      {lang === 'en' ? 'View Products' : 'ቡናዎችን ይመልከቱ'}
+                      {t.hero_cta_products}
                     </button>
                   </div>
 
@@ -652,12 +833,42 @@ export default function App() {
                       <div className="text-[#F8F1E7] text-[9px] tracking-[0.3em] uppercase mb-0.5 opacity-40">Export Quality</div>
                       <div className="text-[#F8F1E7] font-serif text-xl font-bold tracking-tight">KONJO BUNA</div>
                       <div className="h-px w-24 bg-[#7E4015]/40 my-1.5 mx-auto"></div>
-                      <div className="text-[#F8F1E7] text-[8px] tracking-[0.2em] uppercase opacity-40">Certified Organic</div>
+                      <div className="text-[#F8F1E7] text-[8px] tracking-[0.2em] uppercase opacity-40">Ethiopian Arabica</div>
                     </div>
                   </div>
 
                 </div>
 
+              </div>
+            </section>
+
+            <section className="border-b border-[#2D2A26]/10 bg-[#F8F1E7] py-16 sm:py-20" aria-labelledby="export-snapshot-title">
+              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto mb-9 max-w-2xl text-center sm:mb-12">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#7E4015]">{t.buyer_information}</span>
+                  <h2 id="export-snapshot-title" className="mt-2 font-serif text-3xl font-bold text-[#2D2A26] sm:text-4xl">{t.export_snapshot_title}</h2>
+                  <p className="mt-3 text-sm leading-relaxed text-[#2D2A26]/65">{t.export_snapshot_subtitle}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+                  {[
+                    { icon: PackageCheck, label: t.buyer_moq, value: lang === 'en' ? '40 ft Container' : '40 ጫማ ኮንቴይነር', helper: lang === 'en' ? 'Minimum bulk order' : 'ዝቅተኛ የጅምላ ትዕዛዝ' },
+                    { icon: Ship, label: lang === 'en' ? 'Port of Loading' : t.buyer_port, value: lang === 'en' ? 'Djibouti' : 'ጅቡቲ', helper: lang === 'en' ? 'FOB shipment gateway' : 'የFOB ጭነት መነሻ' },
+                    { icon: Workflow, label: lang === 'en' ? 'Processing Methods' : t.buyer_processing, value: lang === 'en' ? 'Washed · Natural · Honey · Anaerobic' : 'የታጠበ · ተፈጥሯዊ · ማር · አናኤሮቢክ', helper: lang === 'en' ? 'Available lot profiles' : 'የሚገኙ የሎት ዓይነቶች' },
+                    { icon: MapPinned, label: t.buyer_origins, value: lang === 'en' ? 'West Arsi (Worka) · Sidama · Guji · Yirgachefe' : 'ምዕራብ አርሲ (ወርቃ) · ሲዳማ · ጉጂ · ይርጋጨፌ', helper: lang === 'en' ? 'Current sourcing regions' : 'የአሁኑ የቡና ምንጭ አካባቢዎች' },
+                  ].map(item => {
+                    const Icon = item.icon;
+                    return (
+                      <article key={item.label} className="group min-w-0 rounded-2xl border border-[#7E4015]/12 bg-white p-4 shadow-[0_16px_40px_-28px_rgba(45,42,38,0.5)] transition-all hover:-translate-y-0.5 hover:border-[#7E4015]/30 hover:shadow-[0_20px_45px_-25px_rgba(126,64,21,0.35)] sm:p-6">
+                        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[#7E4015]/10 text-[#7E4015] sm:h-11 sm:w-11">
+                          <Icon className="h-5 w-5" aria-hidden="true" />
+                        </div>
+                        <span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-[#7E4015] sm:text-[10px]">{item.label}</span>
+                        <h3 className="mt-2 break-words font-serif text-base font-bold leading-snug text-[#2D2A26] sm:text-lg">{item.value}</h3>
+                        <p className="mt-3 text-[10px] leading-relaxed text-[#2D2A26]/50 sm:text-xs">{item.helper}</p>
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
             </section>
 
@@ -815,14 +1026,14 @@ export default function App() {
                           onClick={(event) => { event.preventDefault(); viewProductDetail(prod.slug); }}
                           className="min-h-11 text-[10px] font-bold uppercase tracking-wider text-[#2D2A26] hover:text-[#7E4015] inline-flex items-center gap-1 transition-all"
                         >
-                          <span>Full Specifications</span>
+                          <span>{lang === 'en' ? 'Full Details' : 'ሙሉ መግለጫ'}</span>
                           <ArrowRight className="h-3.5 w-3.5" />
                         </a>
                         <button 
                           onClick={() => triggerInquiryForProduct(prod)}
                           className="px-4 py-2.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[rgb(22,180,11)] hover:text-[#2D2A26] rounded-2xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
                         >
-                          Inquire
+                          {t.request_sample}
                         </button>
                       </div>
                     </div>
@@ -854,6 +1065,30 @@ export default function App() {
                     </div>
                   ))}
                 </div>
+
+                <div className="mt-16 border-y border-[#2D2A26]/10 py-12 text-center sm:py-16">
+                  <div className="mx-auto max-w-2xl space-y-4">
+                    <h2 className="font-serif text-3xl font-bold text-[#2D2A26] sm:text-4xl">{t.buyer_cta_title}</h2>
+                    <p className="text-sm leading-relaxed text-gray-600">{t.buyer_cta_desc}</p>
+                    <div className="flex flex-col justify-center gap-3 pt-3 sm:flex-row">
+                      <button type="button" onClick={requestSample} className="min-h-11 rounded-xl bg-[#7E4015] px-7 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#2D2A26]">
+                        {t.request_sample}
+                      </button>
+                      <button type="button" onClick={() => navigateTo('products')} className="min-h-11 rounded-xl border border-[#2D2A26] px-7 py-3 text-xs font-bold uppercase tracking-widest text-[#2D2A26] transition-colors hover:border-[#7E4015] hover:text-[#7E4015]">
+                        {t.hero_cta_products}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="deferred-home-section overflow-hidden border-b border-[#2D2A26]/10 bg-white py-14" aria-labelledby="partners-title">
+              <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8 border-b border-[#2D2A26]/">
+                <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#7E4015]">{lang === 'en' ? 'Trusted relationships' : 'የታመኑ ግንኙነቶች'}</span>
+                <h2 id="partners-title" className="font-serif text-2xl font-bold text-[#2D2A26] sm:text-3xl">{t.partners_title}</h2>
+                <p className="mt-2 text-xs text-gray-500">{t.partners_subtitle}</p>
+                <PartnerLogoCarousel label={t.partners_title} />
               </div>
             </section>
 
@@ -1118,7 +1353,7 @@ export default function App() {
                             onClick={() => triggerInquiryForProduct(prod)}
                             className="px-4 py-2.5 bg-[#7E4015] text-[#F8F1E7] hover:bg-[#2D2A26] rounded-2xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm"
                           >
-                            {lang === 'en' ? 'Inquire' : 'ጥያቄ አቅርብ'}
+                            {t.request_sample}
                           </button>
                         </div>
                       </div>
@@ -1483,11 +1718,11 @@ export default function App() {
             </div>
 
             {/* Category selection row */}
-            <div className="flex flex-wrap justify-center gap-2 p-3 bg-white border border-[#2D2A26]/10 rounded-none max-w-2xl mx-auto shadow-none">
+            <div className="flex flex-wrap justify-center gap-2 p-3 bg-white border-none border-[#2D2A26]/10  max-w-2xl mx-auto shadow-none">
               <button
                 id="gal-filter-all"
                 onClick={() => setGalleryCategoryFilter('all')}
-                className={`px-4 py-2 rounded-none text-xs font-bold uppercase tracking-wider transition-all border ${
+                className={`px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all border ${
                   galleryCategoryFilter === 'all' 
                     ? 'bg-[#7E4015] border-[#7E4015] text-[#F8F1E7] shadow-sm' 
                     : 'border-[#2D2A26]/10 text-gray-600 hover:border-[#7E4015] hover:text-[#7E4015]'
@@ -1502,7 +1737,7 @@ export default function App() {
                     key={cat}
                     id={`gal-filter-${(cat as string).replace(/\s+/g, '-').toLowerCase()}`}
                     onClick={() => setGalleryCategoryFilter(cat)}
-                    className={`px-4 py-2 rounded-none text-xs font-bold uppercase tracking-wider transition-all border ${
+                    className={`px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all border ${
                       galleryCategoryFilter === cat 
                         ? 'bg-[#7E4015] border-[#7E4015] text-[#F8F1E7] shadow-sm' 
                         : 'border-[#2D2A26]/10 text-gray-600 hover:border-[#7E4015] hover:text-[#7E4015]'
@@ -1518,9 +1753,9 @@ export default function App() {
             {(() => {
               const filtered = gallery.filter(g => galleryCategoryFilter === 'all' || g.category_en === galleryCategoryFilter);
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="gallery-grid">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 " id="gallery-grid">
                   {filtered.length === 0 && (
-                    <p className="sm:col-span-2 md:col-span-3 lg:col-span-4 bg-white border border-[#2D2A26]/10 p-12 text-center text-sm text-gray-600" role="status">
+                    <p className="sm:col-span-2 md:col-span-3 lg:col-span-4 bg-white border-2xl border-[#2D2A26]/10 p-12 text-center text-sm text-gray-600" role="status">
                       {lang === 'en' ? 'No gallery images are available in this category.' : 'ምንም ፎቶዎች አልተገኙም።'}
                     </p>
                   )}
@@ -1534,7 +1769,7 @@ export default function App() {
 
                     if (item.media_type === 'video') {
                       return (
-                        <article key={item.id} className="group bg-white overflow-hidden border border-[#2D2A26]/10 shadow-none hover:shadow-md transition-all">
+                        <article key={item.id} className="group bg-white overflow-hidden border rounded-2xl border-[#2D2A26]/10 shadow-none hover:shadow-md transition-all">
                           <button
                             type="button"
                             onClick={openAsset}
@@ -1691,6 +1926,68 @@ export default function App() {
                 {inquiryError && <div role="alert" className="border border-red-200 bg-red-50 p-4 text-sm text-red-800">{inquiryError}</div>}
 
                 <form onSubmit={handleInquirySubmit} className="space-y-4" id="export-inquiry-form">
+                  <fieldset className="space-y-2">
+                    <legend className="text-[10px] font-bold uppercase tracking-wider text-gray-700">{t.request_type}</legend>
+                    <div className="grid grid-cols-2 gap-1 rounded-xl border border-[#2D2A26]/10 bg-[#F8F1E7] p-1" id="inquiry-type-selector">
+                      {(['sample', 'bulk'] as const).map(type => (
+                        <label key={type} className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wider transition-colors ${inquiryType === type ? 'bg-[#7E4015] text-white shadow-sm' : 'text-[#2D2A26] hover:bg-white'}`}>
+                          <input
+                            type="radio"
+                            name="request_type"
+                            value={type}
+                            checked={inquiryType === type}
+                            onChange={() => changeInquiryType(type)}
+                            className="sr-only"
+                          />
+                          {type === 'sample' ? t.sample_request : t.bulk_inquiry}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <div className={`grid grid-cols-1 gap-4 ${inquiryType === 'sample' ? 'sm:grid-cols-2' : ''}`}>
+                    <div>
+                      <label htmlFor="inquiry-product" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{lang === 'en' ? 'Coffee lot / product' : 'የቡና ሎት / ምርት'} {inquiryType === 'sample' ? '*' : ''}</label>
+                      <select
+                        id="inquiry-product"
+                        name="coffee_type"
+                        value={inquiryProductId}
+                        required={inquiryType === 'sample'}
+                        onChange={(event) => {
+                          const productId = event.target.value;
+                          setInquiryProductId(productId);
+                          const product = products.find(item => item.id === productId);
+                          setInquiryProductKey(product?.slug ?? null);
+                          window.history.replaceState({}, '', contactInquiryPath(inquiryType, product?.slug));
+                        }}
+                        className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none"
+                      >
+                        <option value="">{lang === 'en' ? 'Select a coffee lot' : 'የቡና ምርት ይምረጡ'}</option>
+                        {products.map(product => (
+                          <option key={product.id} value={product.id}>{lang === 'en' ? product.title_en : product.title_am}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {inquiryType === 'sample' && (
+                      <fieldset>
+                        <legend className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.sample_size} *</legend>
+                        <div className="mt-1 grid grid-cols-2 gap-2">
+                          {[
+                            { value: '100 g', label: t.sample_100g },
+                            { value: '200 g', label: t.sample_200g },
+                          ].map(size => (
+                            <label key={size.value} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-[#2D2A26]/10 bg-[#F8F1E7]/25 px-3 py-2 text-xs font-bold has-[:checked]:border-[#7E4015] has-[:checked]:bg-[#7E4015]/10">
+                              <input type="radio" name="sample_size" value={size.value} required />
+                              {size.label}
+                            </label>
+                          ))}
+                        </div>
+                        <p className="mt-2 text-[11px] font-semibold text-[#7E4015]">{t.samples_paid}</p>
+                      </fieldset>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="inquiry-company" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_comp_name} *</label>
@@ -1716,35 +2013,22 @@ export default function App() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="inquiry-country" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_country}</label>
-                      <input id="inquiry-country" type="text" name="country" placeholder="e.g. Switzerland" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
-                    </div>
-                    <div>
-                      <label htmlFor="inquiry-product" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">Specialty Coffee lot</label>
-                      <select 
-                        id="inquiry-product"
-                        name="coffee_type"
-                        value={inquiryProductId}
-                        onChange={(e) => setInquiryProductId(e.target.value)}
-                        className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none"
-                      >
-                        <option value="">General Corporate / Other Inquiry</option>
-                        {products.map(p => (
-                          <option key={p.id} value={p.id}>{lang === 'en' ? p.title_en : p.title_am}</option>
-                        ))}
-                      </select>
+                      <input id="inquiry-country" type="text" name="country" required={inquiryType === 'sample'} placeholder="e.g. Switzerland" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="inquiry-volume" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_vol}</label>
-                      <input id="inquiry-volume" type="text" name="volume_required" placeholder="e.g. 1 FCL, 20 Jute bags" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                  {inquiryType === 'bulk' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" id="bulk-inquiry-fields">
+                      <div>
+                        <label htmlFor="inquiry-volume" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_vol}</label>
+                        <input id="inquiry-volume" type="text" name="volume_required" placeholder="e.g. 1 × 40 ft FCL" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                      </div>
+                      <div>
+                        <label htmlFor="inquiry-price" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_price}</label>
+                        <input id="inquiry-price" type="text" name="target_price" placeholder="e.g. $5.80 FOB" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
+                      </div>
                     </div>
-                    <div>
-                      <label htmlFor="inquiry-price" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_price}</label>
-                      <input id="inquiry-price" type="text" name="target_price" placeholder="e.g. $5.80 FOB" className="mt-1 block w-full bg-[#F8F1E7]/25 border border-[#2D2A26]/10 focus:border-[#7E4015] rounded-none px-4 py-3 text-xs focus:outline-none" />
-                    </div>
-                  </div>
+                  )}
 
                   <div>
                     <label htmlFor="inquiry-message" className="block text-[10px] font-bold text-gray-700 uppercase tracking-wider">{t.contact_msg} *</label>
@@ -1787,37 +2071,67 @@ export default function App() {
                   </ul>
                 </div>
 
-                {/* Embedded map and accessible fallback */}
-                <div className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none">
-                  <div className="p-4 bg-gray-50 border-b border-[#2D2A26]/5 flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono">Location coordinates</span>
-                    <span className="text-[10px] font-bold text-[#7E4015] font-mono">7.0161207° N, 38.4771557° E</span>
+                {/* Awassa embedded location */}
+                <section aria-labelledby="awassa-location-heading" className="space-y-3">
+                  <h3 id="awassa-location-heading" className="font-serif text-xl font-bold tracking-wide text-[#7E4015]">
+                    {t.location_awassa}
+                  </h3>
+                  <div className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none">
+                    <div className="p-4 bg-gray-50 border-b border-[#2D2A26]/5 flex items-center justify-between gap-3">
+                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono">Location coordinates</span>
+                      <span className="text-[10px] font-bold text-[#7E4015] font-mono text-right">7.0161207° N, 38.4771557° E</span>
+                    </div>
+                    <div className="h-64 bg-[#2D2A26]">
+                      <iframe
+                        src={awassaMapsEmbedUrl}
+                        title={`${t.location_awassa}: 7.0161207, 38.4771557`}
+                        width="600"
+                        height="256"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        className="h-full w-full border-0"
+                        allowFullScreen
+                      />
+                    </div>
+                    <div className="border-t border-[#2D2A26]/5 p-4">
+                      <p className="flex items-start gap-2 text-xs leading-relaxed text-gray-600">
+                        <MapPin className="h-4 w-4 shrink-0 text-[#7E4015]" aria-hidden="true" />
+                        <span>{addressVal}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="h-64 bg-[#2D2A26]">
-                    <iframe
-                      src={googleMapsEmbedUrl}
-                      title="Google Map showing the Konjo Buna location at 7.0161207, 38.4771557"
-                      width="600"
-                      height="256"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      className="h-full w-full border-0"
-                      allowFullScreen
-                    />
+                </section>
+
+                {/* Addis Ababa embedded location */}
+                <section aria-labelledby="addis-abeba-location-heading" className="space-y-3">
+                  <h3 id="addis-abeba-location-heading" className="font-serif text-xl font-bold tracking-wide text-[#7E4015]">
+                    {t.location_addis_abeba}
+                  </h3>
+                  <div className="bg-white border border-[#2D2A26]/10 rounded-none overflow-hidden shadow-none">
+                    <div className="p-4 bg-gray-50 border-b border-[#2D2A26]/5 flex items-center justify-between gap-3">
+                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono">Location coordinates</span>
+                      <span className="text-[10px] font-bold text-[#7E4015] font-mono text-right">9.005088° N, 38.767241° E</span>
+                    </div>
+                    <div className="h-64 bg-[#2D2A26]">
+                      <iframe
+                        src={addisAbabaMapsEmbedUrl}
+                        title={`${t.location_addis_abeba}: 9.005088, 38.767241`}
+                        width="600"
+                        height="256"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        className="h-full w-full border-0"
+                        allowFullScreen
+                      />
+                    </div>
+                    <div className="border-t border-[#2D2A26]/5 p-4">
+                      <p className="flex items-start gap-2 text-xs leading-relaxed text-gray-600">
+                        <MapPin className="h-4 w-4 shrink-0 text-[#7E4015]" aria-hidden="true" />
+                        <span>Africa Avenue / Bole Road, Kirkos, Ethiopia</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-start gap-3 border-t border-[#2D2A26]/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs text-gray-600">Map not displaying? Open the exact location in Google Maps.</p>
-                    <a
-                      href={googleMapsShareUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex min-h-11 items-center gap-2 bg-[#7E4015] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#2D2A26]"
-                    >
-                      Open in Google Maps
-                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    </a>
-                  </div>
-                </div>
+                </section>
 
               </div>
 
@@ -1972,6 +2286,20 @@ export default function App() {
           onSubscribe={handleNewsletterSubscribe}
           settings={settings}
         />
+      )}
+
+      {currentView !== 'admin' && (
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Contact Konjo Buna on WhatsApp"
+          id="floating-whatsapp"
+          className="group fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border-2 border-white bg-[#1f8f4e] text-white shadow-[0_10px_30px_rgba(31,143,78,0.35)] transition-transform hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#1f8f4e] sm:right-6"
+        >
+          <WhatsAppIcon className="h-7 w-7" />
+          <span className="sr-only">WhatsApp</span>
+        </a>
       )}
 
     </div>
