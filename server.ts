@@ -992,8 +992,10 @@ async function startServer() {
     // Serve compiled files in production
     const distPath = path.join(process.cwd(), 'dist');
     const indexPath = path.join(distPath, 'index.html');
-    let indexTemplatePromise: Promise<string> | undefined;
-    const indexTemplate = () => indexTemplatePromise ??= fs.promises.readFile(indexPath, 'utf8');
+    // Read the current release HTML for each page request. Caching this in a
+    // long-lived Passenger worker can keep serving an old asset manifest after
+    // a deployment replaces dist/ with a newer Vite build.
+    const indexTemplate = () => fs.promises.readFile(indexPath, 'utf8');
 
     app.get('/robots.txt', (req, res) => {
       const baseUrl = requestBaseUrl(req);
@@ -1022,11 +1024,13 @@ async function startServer() {
       },
     }));
     app.get('*', asyncRoute(async (req, res) => {
+      // HTML contains the current Vite asset manifest and must be re-fetched
+      // after deploys; immutable caching is reserved for fingerprinted assets.
+      res.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
       const baseUrl = requestBaseUrl(req);
       const seo = await seoForRoute(req.path, baseUrl);
       if (!seo) return res.status(404).type('html').send(notFoundHtml(baseUrl));
       const html = injectSeoDocument(await indexTemplate(), seo);
-      res.set('Cache-Control', 'no-cache');
       res.type('html').send(html);
     }));
     app.use((error: unknown, req: RequestWithId, res: express.Response, _next: express.NextFunction) => {
